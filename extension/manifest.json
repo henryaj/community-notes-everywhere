@@ -5,11 +5,12 @@
   "description": "Add community notes to any webpage. Highlight text, provide context, and rate notes from other users.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "http://localhost:3000/*",
-    "https://community-notes-everywhere-*.herokuapp.com/*"
+    "https://*.herokuapp.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -38,7 +39,7 @@
   "externally_connectable": {
     "matches": [
       "http://localhost:3000/*",
-      "https://community-notes-everywhere-*.herokuapp.com/*"
+      "https://*.herokuapp.com/*"
     ]
   }
 }

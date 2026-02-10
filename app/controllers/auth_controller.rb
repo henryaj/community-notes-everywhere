@@ -1,47 +1,62 @@
 class AuthController < ApplicationController
-  # GET /auth/x/callback
+  # GET /auth/x/callback — real OAuth
   def callback
     auth = request.env["omniauth.auth"]
     user = User.find_or_create_from_oauth(auth)
+    redirect_to_extension(user)
+  end
 
-    # Render a page that sends the token back to the Chrome extension
+  # GET /auth/dev — dev-only login, creates a test user and returns token
+  def dev
+    raise ActionController::RoutingError, "Not Found" unless Rails.env.development?
+
+    user = User.find_or_initialize_by(twitter_uid: "dev_user")
+    user.assign_attributes(
+      twitter_handle: "dev_tester",
+      display_name: "Dev Tester",
+      avatar_url: "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+      follower_count: 500,
+      account_created_at: 3.years.ago
+    )
+    user.save!
+    user.recalculate_reputation!
+
+    redirect_to_extension(user)
+  end
+
+  def failure
+    render json: { error: "Authentication failed", reason: params[:message] }, status: :unauthorized
+  end
+
+  private
+
+  def redirect_to_extension(user)
+    # Render a page that stores the token and confirms login
     render html: <<~HTML.html_safe
       <!DOCTYPE html>
       <html>
       <head><title>Login Successful</title></head>
       <body>
         <h1>Login successful!</h1>
-        <p>You can close this tab. Sending credentials to extension...</p>
+        <p id="status">Sending credentials to extension...</p>
         <script>
-          // Send token to the Chrome extension
-          if (chrome && chrome.runtime) {
-            chrome.runtime.sendMessage(
-              document.getElementById('ext-id')?.value,
-              {
-                type: 'AUTH_TOKEN',
-                token: '#{user.auth_token}',
-                user: {
-                  handle: '#{user.twitter_handle}',
-                  displayName: '#{user.display_name}',
-                  avatarUrl: '#{user.avatar_url}'
-                }
-              }
-            );
-          }
-          // Also try postMessage for popup-based flows
-          window.opener?.postMessage({
-            type: 'AUTH_TOKEN',
-            token: '#{user.auth_token}'
-          }, '*');
-          setTimeout(() => window.close(), 2000);
+          const token = "#{user.auth_token}";
+          const userData = {
+            handle: "#{user.twitter_handle}",
+            displayName: "#{user.display_name}",
+            avatarUrl: "#{user.avatar_url}"
+          };
+
+          // The extension's background worker listens for this URL pattern
+          // and reads the token from the hash fragment
+          const hashData = encodeURIComponent(JSON.stringify({ token, user: userData }));
+          window.location.hash = "cne_auth=" + hashData;
+
+          document.getElementById("status").textContent =
+            "Logged in as @#{user.twitter_handle}. You can close this tab.";
         </script>
       </body>
       </html>
     HTML
-  end
-
-  # Handle OmniAuth failure
-  def failure
-    render json: { error: "Authentication failed", reason: params[:message] }, status: :unauthorized
   end
 end

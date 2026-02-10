@@ -4,6 +4,7 @@ Rails.application.routes.draw do
 
   # OAuth
   get "/auth/x/callback", to: "auth#callback"
+  get "/auth/dev", to: "auth#dev"
   get "/auth/failure", to: "auth#failure"
 
   # API

@@ -7,10 +7,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const logoutBtn = document.getElementById("logout-btn");
 
   // Check if user is logged in
-  const { authToken, user } = await chrome.storage.local.get([
+  const { authToken, user } = await chrome.storage?.local?.get([
     "authToken",
     "user",
-  ]);
+  ]) || {};
 
   if (authToken) {
     showProfile(authToken);
@@ -19,9 +19,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     profileSection.style.display = "none";
   }
 
-  // Login button
+  // Login button — uses /auth/dev locally, /auth/x in production
   loginBtn.addEventListener("click", () => {
-    chrome.tabs.create({ url: `${API_BASE}/auth/x` });
+    const authPath = API_BASE.includes("localhost") ? "/auth/dev" : "/auth/x";
+    chrome.tabs.create({ url: `${API_BASE}${authPath}` });
     window.close();
   });
 

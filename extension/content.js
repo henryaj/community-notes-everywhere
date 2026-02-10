@@ -1,11 +1,165 @@
+// content.js — injected into pages, handles highlights + note display
+// Anchoring logic lives in anchoring.js (imported at build time for tests,
+// but since Chrome content scripts don't support ES modules, we inline it here
+// and also export from anchoring.js for testing).
+
 (() => {
-  // Avoid running in iframes
+  // Avoid running in iframes or contexts where extension APIs aren't available
   if (window !== window.top) return;
+  if (!chrome?.runtime?.sendMessage) return;
 
   let notes = [];
   let addNoteButton = null;
 
-  // Load notes for the current page
+  // ── Anchoring functions (mirrored in anchoring.js for testing) ──
+
+  function normalizeWs(str) {
+    return str.replace(/\s+/g, " ").trim();
+  }
+
+  function collectTextNodes(node) {
+    const treeWalker = document.createTreeWalker(
+      node,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    let currentNode;
+    let fullText = "";
+    const textNodes = [];
+
+    while ((currentNode = treeWalker.nextNode())) {
+      textNodes.push({ node: currentNode, start: fullText.length });
+      fullText += currentNode.textContent;
+    }
+
+    return { fullText, textNodes };
+  }
+
+  function buildRange(textNodes, start, end) {
+    const range = document.createRange();
+    let startSet = false;
+
+    for (let i = 0; i < textNodes.length; i++) {
+      const tn = textNodes[i];
+      const nodeEnd = tn.start + tn.node.textContent.length;
+
+      if (!startSet && start < nodeEnd) {
+        range.setStart(tn.node, start - tn.start);
+        startSet = true;
+      }
+
+      if (startSet && end <= nodeEnd) {
+        range.setEnd(tn.node, end - tn.start);
+        return range;
+      }
+    }
+
+    return null;
+  }
+
+  function findTextInNode(node, searchText) {
+    if (!searchText) return null;
+
+    const { fullText, textNodes } = collectTextNodes(node);
+    const index = fullText.indexOf(searchText);
+    if (index === -1) return null;
+
+    return buildRange(textNodes, index, index + searchText.length);
+  }
+
+  function findTextNormalized(node, searchText) {
+    if (!searchText) return null;
+
+    const { fullText, textNodes } = collectTextNodes(node);
+
+    const normalizedChars = [];
+    const origIndexMap = [];
+    let inSpace = false;
+
+    for (let i = 0; i < fullText.length; i++) {
+      if (/\s/.test(fullText[i])) {
+        if (!inSpace && normalizedChars.length > 0) {
+          normalizedChars.push(" ");
+          origIndexMap.push(i);
+        }
+        inSpace = true;
+      } else {
+        normalizedChars.push(fullText[i]);
+        origIndexMap.push(i);
+        inSpace = false;
+      }
+    }
+
+    const normalizedFull = normalizedChars.join("");
+    const normalizedSearch = normalizeWs(searchText);
+    const idx = normalizedFull.indexOf(normalizedSearch);
+    if (idx === -1) return null;
+
+    const origStart = origIndexMap[idx];
+    const origEnd = origIndexMap[idx + normalizedSearch.length - 1] + 1;
+
+    return buildRange(textNodes, origStart, origEnd);
+  }
+
+  function findTextWithContext(text, prefix, suffix) {
+    const bodyText = document.body.innerText || document.body.textContent;
+    const searchString = (prefix || "") + text + (suffix || "");
+
+    let index = bodyText.indexOf(searchString);
+    if (index !== -1) {
+      const textStart = index + (prefix || "").length;
+      return findTextInNode(
+        document.body,
+        bodyText.substring(textStart, textStart + text.length)
+      );
+    }
+
+    const normBody = normalizeWs(bodyText);
+    const normSearch = normalizeWs(searchString);
+    index = normBody.indexOf(normSearch);
+    if (index !== -1) {
+      return findTextNormalized(document.body, text);
+    }
+
+    return null;
+  }
+
+  function findTextRange(note) {
+    if (note.css_selector) {
+      try {
+        const container = document.querySelector(note.css_selector);
+        if (container) {
+          const range = findTextInNode(container, note.selected_text);
+          if (range) return range;
+        }
+      } catch {
+        // Invalid selector, skip
+      }
+    }
+
+    const exactRange = findTextInNode(document.body, note.selected_text);
+    if (exactRange) return exactRange;
+
+    if (note.text_prefix || note.text_suffix) {
+      const contextRange = findTextWithContext(
+        note.selected_text,
+        note.text_prefix,
+        note.text_suffix
+      );
+      if (contextRange) return contextRange;
+    }
+
+    const normalizedRange = findTextNormalized(
+      document.body,
+      note.selected_text
+    );
+    if (normalizedRange) return normalizedRange;
+
+    return null;
+  }
+
+  // ── Page interaction ──
+
   async function loadNotes() {
     const response = await chrome.runtime.sendMessage({
       type: "GET_NOTES",
@@ -18,9 +172,7 @@
     }
   }
 
-  // Highlight text on the page for each note
   function highlightNotes() {
-    // Remove existing highlights
     document.querySelectorAll(".cne-highlight").forEach((el) => el.remove());
 
     notes.forEach((note) => {
@@ -31,94 +183,6 @@
     });
   }
 
-  // Find the text range for a note using anchoring strategy
-  function findTextRange(note) {
-    // Strategy 1: Try to find in specific CSS selector
-    if (note.css_selector) {
-      const container = document.querySelector(note.css_selector);
-      if (container) {
-        const range = findTextInNode(container, note.selected_text);
-        if (range) return range;
-      }
-    }
-
-    // Strategy 2: Find exact text anywhere in the document
-    const exactRange = findTextInNode(document.body, note.selected_text);
-    if (exactRange) return exactRange;
-
-    // Strategy 3: Fuzzy match using prefix/suffix
-    if (note.text_prefix || note.text_suffix) {
-      return findTextWithContext(
-        note.selected_text,
-        note.text_prefix,
-        note.text_suffix
-      );
-    }
-
-    return null;
-  }
-
-  // Find text within a DOM node and return a Range
-  function findTextInNode(node, searchText) {
-    if (!searchText) return null;
-
-    const treeWalker = document.createTreeWalker(
-      node,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
-
-    let currentNode;
-    let fullText = "";
-    const textNodes = [];
-
-    while ((currentNode = treeWalker.nextNode())) {
-      textNodes.push({ node: currentNode, start: fullText.length });
-      fullText += currentNode.textContent;
-    }
-
-    const index = fullText.indexOf(searchText);
-    if (index === -1) return null;
-
-    const range = document.createRange();
-    let startSet = false;
-
-    for (let i = 0; i < textNodes.length; i++) {
-      const tn = textNodes[i];
-      const nodeEnd = tn.start + tn.node.textContent.length;
-
-      if (!startSet && index < nodeEnd) {
-        range.setStart(tn.node, index - tn.start);
-        startSet = true;
-      }
-
-      if (startSet && index + searchText.length <= nodeEnd) {
-        range.setEnd(tn.node, index + searchText.length - tn.start);
-        return range;
-      }
-    }
-
-    return null;
-  }
-
-  // Find text using surrounding context
-  function findTextWithContext(text, prefix, suffix) {
-    const bodyText = document.body.innerText;
-    const searchString = (prefix || "") + text + (suffix || "");
-    const index = bodyText.indexOf(searchString);
-
-    if (index !== -1) {
-      const textStart = index + (prefix || "").length;
-      return findTextInNode(
-        document.body,
-        bodyText.substring(textStart, textStart + text.length)
-      );
-    }
-
-    return null;
-  }
-
-  // Wrap a Range with a highlight element
   function wrapRangeWithHighlight(range, note) {
     const highlight = document.createElement("span");
     highlight.className = "cne-highlight";
@@ -128,7 +192,6 @@
     try {
       range.surroundContents(highlight);
     } catch {
-      // If surroundContents fails (crosses element boundaries), use a simpler approach
       const contents = range.extractContents();
       highlight.appendChild(contents);
       range.insertNode(highlight);
@@ -140,9 +203,7 @@
     });
   }
 
-  // Show a popover with note details
   function showNotePopover(anchor, note) {
-    // Remove any existing popovers
     document.querySelectorAll(".cne-popover").forEach((el) => el.remove());
 
     const popover = document.createElement("div");
@@ -172,19 +233,16 @@
       </div>
     `;
 
-    // Position popover near the anchor
     const rect = anchor.getBoundingClientRect();
     popover.style.top = `${window.scrollY + rect.bottom + 8}px`;
     popover.style.left = `${window.scrollX + rect.left}px`;
 
     document.body.appendChild(popover);
 
-    // Close button
-    popover.querySelector(".cne-close").addEventListener("click", () => {
-      popover.remove();
-    });
+    popover
+      .querySelector(".cne-close")
+      .addEventListener("click", () => popover.remove());
 
-    // Rating buttons
     popover.querySelectorAll(".cne-rate-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const helpful = btn.dataset.helpful === "true";
@@ -195,16 +253,16 @@
         });
 
         if (result && !result.error) {
-          // Update counts in the popover
-          popover.querySelector(".cne-rate-helpful").innerHTML =
-            `&#x1F44D; ${result.note.helpful_count}`;
-          popover.querySelector(".cne-rate-not-helpful").innerHTML =
-            `&#x1F44E; ${result.note.not_helpful_count}`;
+          popover.querySelector(
+            ".cne-rate-helpful"
+          ).innerHTML = `&#x1F44D; ${result.note.helpful_count}`;
+          popover.querySelector(
+            ".cne-rate-not-helpful"
+          ).innerHTML = `&#x1F44E; ${result.note.not_helpful_count}`;
         }
       });
     });
 
-    // Close popover when clicking outside
     document.addEventListener(
       "click",
       (e) => {
@@ -216,9 +274,7 @@
     );
   }
 
-  // Show "Add Note" button when text is selected
   document.addEventListener("mouseup", (e) => {
-    // Ignore clicks on our own UI
     if (e.target.closest(".cne-popover, .cne-add-note-btn, .cne-note-form"))
       return;
 
@@ -248,7 +304,6 @@
     document.body.appendChild(addNoteButton);
   });
 
-  // Remove the add note button
   function removeAddNoteButton() {
     if (addNoteButton) {
       addNoteButton.remove();
@@ -256,7 +311,6 @@
     }
   }
 
-  // Capture context for text anchoring
   function getCaptureContext(range, selectedText) {
     const container = range.commonAncestorContainer;
     const element =
@@ -264,10 +318,8 @@
         ? container.parentElement
         : container;
 
-    // Get CSS selector for the element
     const cssSelector = getCssSelector(element);
 
-    // Get surrounding text
     const fullText = element.textContent || "";
     const textIndex = fullText.indexOf(selectedText);
 
@@ -285,7 +337,6 @@
     return { cssSelector, textPrefix, textSuffix };
   }
 
-  // Generate a CSS selector for an element
   function getCssSelector(element) {
     if (element.id) return `#${element.id}`;
 
@@ -311,7 +362,6 @@
         }
       }
 
-      // Add nth-child if needed
       const parent = current.parentElement;
       if (parent) {
         const siblings = Array.from(parent.children).filter(
@@ -330,7 +380,6 @@
     return parts.join(" > ");
   }
 
-  // Show inline form to create a note
   function showNoteForm(rect, selectedText, context) {
     document.querySelectorAll(".cne-note-form").forEach((el) => el.remove());
 
@@ -359,40 +408,47 @@
     const textarea = form.querySelector(".cne-form-textarea");
     textarea.focus();
 
-    form.querySelector(".cne-close").addEventListener("click", () => form.remove());
-    form.querySelector(".cne-form-cancel").addEventListener("click", () => form.remove());
+    form
+      .querySelector(".cne-close")
+      .addEventListener("click", () => form.remove());
+    form
+      .querySelector(".cne-form-cancel")
+      .addEventListener("click", () => form.remove());
 
-    form.querySelector(".cne-form-submit").addEventListener("click", async () => {
-      const body = textarea.value.trim();
-      if (!body) return;
+    form
+      .querySelector(".cne-form-submit")
+      .addEventListener("click", async () => {
+        const body = textarea.value.trim();
+        if (!body) return;
 
-      const submitBtn = form.querySelector(".cne-form-submit");
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Submitting...";
+        const submitBtn = form.querySelector(".cne-form-submit");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting...";
 
-      const result = await chrome.runtime.sendMessage({
-        type: "CREATE_NOTE",
-        note: {
-          url: window.location.href,
-          body,
-          selected_text: selectedText,
-          text_prefix: context.textPrefix,
-          text_suffix: context.textSuffix,
-          css_selector: context.cssSelector,
-        },
+        const result = await chrome.runtime.sendMessage({
+          type: "CREATE_NOTE",
+          note: {
+            url: window.location.href,
+            body,
+            selected_text: selectedText,
+            text_prefix: context.textPrefix,
+            text_suffix: context.textSuffix,
+            css_selector: context.cssSelector,
+          },
+        });
+
+        if (result && !result.error) {
+          form.remove();
+          notes.push(result);
+          highlightNotes();
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Submit Note";
+          const errorMsg =
+            result?.error || "Failed to create note. Are you logged in?";
+          alert(errorMsg);
+        }
       });
-
-      if (result && !result.error) {
-        form.remove();
-        notes.push(result);
-        highlightNotes();
-      } else {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Note";
-        const errorMsg = result?.error || "Failed to create note. Are you logged in?";
-        alert(errorMsg);
-      }
-    });
   }
 
   function escapeHtml(str) {

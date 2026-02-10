@@ -1,9 +1,34 @@
 const API_BASE = "http://localhost:3000";
 
+// Watch for auth callback tabs — grab the token from the URL hash
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!tab.url) return;
+
+  try {
+    const url = new URL(tab.url);
+    if (!url.origin.startsWith(API_BASE)) return;
+    if (!url.hash.includes("cne_auth=")) return;
+
+    const encoded = url.hash.split("cne_auth=")[1];
+    if (!encoded) return;
+
+    const data = JSON.parse(decodeURIComponent(encoded));
+    if (data.token) {
+      chrome.storage.local.set({
+        authToken: data.token,
+        user: data.user,
+      });
+      // Close the auth tab after a short delay
+      setTimeout(() => chrome.tabs.remove(tabId), 1500);
+    }
+  } catch {
+    // Not an auth URL, ignore
+  }
+});
+
 // Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "AUTH_TOKEN") {
-    // Store auth token from OAuth callback
     chrome.storage.local.set({
       authToken: message.token,
       user: message.user,
@@ -14,7 +39,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "GET_NOTES") {
     fetchNotes(message.url).then(sendResponse);
-    return true; // async response
+    return true;
   }
 
   if (message.type === "CREATE_NOTE") {
@@ -39,19 +64,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Listen for external messages (from OAuth callback page)
-chrome.runtime.onMessageExternal.addListener(
-  (message, sender, sendResponse) => {
-    if (message.type === "AUTH_TOKEN") {
-      chrome.storage.local.set({
-        authToken: message.token,
-        user: message.user,
-      });
-      sendResponse({ ok: true });
-    }
-  }
-);
-
 async function getAuthToken() {
   const result = await chrome.storage.local.get("authToken");
   return result.authToken;
@@ -71,8 +83,12 @@ async function apiFetch(path, options = {}) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "Request failed" }));
-    return { error: error.error || error.errors?.join(", ") || "Request failed" };
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
+    return {
+      error: error.error || error.errors?.join(", ") || "Request failed",
+    };
   }
 
   return response.json();
