@@ -218,7 +218,7 @@
         <button class="cne-close">&times;</button>
       </div>
       <div class="cne-popover-body">
-        <p>${escapeHtml(note.body)}</p>
+        <p>${linkify(escapeHtml(note.body))}</p>
       </div>
       <div class="cne-popover-footer">
         <span class="cne-status cne-status-${note.status}">${note.status}</span>
@@ -393,7 +393,11 @@
       <div class="cne-form-selected">
         <em>"${escapeHtml(selectedText.substring(0, 100))}${selectedText.length > 100 ? "..." : ""}"</em>
       </div>
-      <textarea class="cne-form-textarea" placeholder="Provide context for readers..." rows="4"></textarea>
+      <div class="cne-form-guidance">
+        Write a note with context that you believe should be shown with the post to keep others informed.
+        Be precise — providing links to outside sources is required.
+      </div>
+      <textarea class="cne-form-textarea" placeholder="Add context and link to trustworthy sources..." rows="4"></textarea>
       <div class="cne-form-actions">
         <button class="cne-form-cancel">Cancel</button>
         <button class="cne-form-submit">Submit Note</button>
@@ -455,6 +459,14 @@
     const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // Convert URLs in already-escaped HTML text into clickable links
+  function linkify(escapedHtml) {
+    return escapedHtml.replace(
+      /https?:\/\/[^\s<"']+/g,
+      (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="cne-link">${url}</a>`
+    );
   }
 
   // Initialize

@@ -237,3 +237,22 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.cne-form-guidance {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #536471;
+  border-bottom: 1px solid #eff3f4;
+}
+
+/* Links in note bodies */
+.cne-link {
+  color: #1d9bf0;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.cne-link:hover {
+  text-decoration: underline;
+}
