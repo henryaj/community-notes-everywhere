@@ -1,0 +1,36 @@
+# Ruby / Rails
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/storage/*
+!/storage/.keep
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3-shm
+/db/*.sqlite3-wal
+.byebug_history
+.bundle
+/vendor/bundle
+
+# Secrets
+config/master.key
+config/credentials/*.key
+.env
+.env.*
+!.env.example
+/.kamal/secrets
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

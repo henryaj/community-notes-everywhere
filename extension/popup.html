@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: #0f1419;
+      background: #fff;
+    }
+
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid #eff3f4;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .logo {
+      font-size: 20px;
+    }
+
+    /* Logged out state */
+    #login-section {
+      padding: 24px 16px;
+      text-align: center;
+    }
+
+    #login-section p {
+      margin-bottom: 16px;
+      color: #536471;
+    }
+
+    .login-btn {
+      display: inline-block;
+      background: #0f1419;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .login-btn:hover {
+      background: #272c30;
+    }
+
+    /* Logged in state */
+    #profile-section {
+      display: none;
+    }
+
+    .profile {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #eff3f4;
+    }
+
+    .profile-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .profile-info {
+      flex: 1;
+    }
+
+    .profile-name {
+      font-weight: 600;
+    }
+
+    .profile-handle {
+      color: #536471;
+      font-size: 13px;
+    }
+
+    .profile-reputation {
+      font-size: 12px;
+      color: #536471;
+    }
+
+    .stats {
+      padding: 12px 16px;
+      display: flex;
+      gap: 16px;
+      border-bottom: 1px solid #eff3f4;
+    }
+
+    .stat {
+      text-align: center;
+      flex: 1;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #536471;
+      text-transform: uppercase;
+    }
+
+    .page-notes {
+      padding: 12px 16px;
+    }
+
+    .page-notes h3 {
+      font-size: 13px;
+      color: #536471;
+      margin-bottom: 8px;
+    }
+
+    .note-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #eff3f4;
+    }
+
+    .note-item:last-child {
+      border-bottom: none;
+    }
+
+    .note-text {
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .note-meta {
+      font-size: 11px;
+      color: #536471;
+      margin-top: 4px;
+    }
+
+    .no-notes {
+      color: #536471;
+      font-size: 13px;
+      padding: 8px 0;
+    }
+
+    .logout-btn {
+      display: block;
+      width: calc(100% - 32px);
+      margin: 12px 16px;
+      padding: 8px;
+      background: none;
+      border: 1px solid #cfd9de;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #536471;
+    }
+
+    .logout-btn:hover {
+      background: #f7f9f9;
+      color: #f4212e;
+      border-color: #f4212e;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">&#x1F4DD;</span>
+    <h1>Community Notes Everywhere</h1>
+  </div>
+
+  <div id="login-section">
+    <p>Sign in with X to create and rate community notes on any webpage.</p>
+    <button class="login-btn" id="login-btn">Sign in with X</button>
+  </div>
+
+  <div id="profile-section">
+    <div class="profile">
+      <img id="avatar" class="profile-avatar" src="" alt="" />
+      <div class="profile-info">
+        <div id="display-name" class="profile-name"></div>
+        <div id="handle" class="profile-handle"></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div id="reputation" class="stat-value">0</div>
+        <div class="stat-label">Reputation</div>
+      </div>
+      <div class="stat">
+        <div id="notes-count" class="stat-value">0</div>
+        <div class="stat-label">Notes</div>
+      </div>
+      <div class="stat">
+        <div id="ratings-count" class="stat-value">0</div>
+        <div class="stat-label">Ratings</div>
+      </div>
+    </div>
+    <div class="page-notes">
+      <h3>Notes on this page</h3>
+      <div id="notes-list">
+        <div class="no-notes">Loading...</div>
+      </div>
+    </div>
+    <button class="logout-btn" id="logout-btn">Sign out</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
