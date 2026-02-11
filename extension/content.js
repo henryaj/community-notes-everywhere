@@ -301,7 +301,7 @@
         ${formatStatusBadge(note)}
       </div>
       ${canRate ? `<div class="cne-popover-footer">
-        <span class="cne-rating-label">Is this note helpful?</span>
+        <span class="cne-rating-label">Is this note helpful? <span class="cne-info-icon">&#x24D8;<span class="cne-info-tooltip"><strong>Consider whether this note:</strong><ul><li>Cites high-quality sources</li><li>Is accurate and up to date</li><li>Provides important context</li><li>Is easy to understand</li><li>Would be useful to people across different viewpoints</li><li>Is neutral and non-inflammatory</li></ul></span></span></span>
         <div class="cne-rating-pills">
           <button class="cne-pill-btn${note.current_user_rating === 'yes' ? ' cne-pill-selected' : ''}" data-note-id="${note.id}" data-helpfulness="yes">Yes</button>
           <button class="cne-pill-btn${note.current_user_rating === 'somewhat' ? ' cne-pill-selected' : ''}" data-note-id="${note.id}" data-helpfulness="somewhat">Somewhat</button>

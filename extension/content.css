@@ -200,6 +200,50 @@ a.cne-handle:hover {
   font-weight: 500;
 }
 
+.cne-info-icon {
+  position: relative;
+  cursor: help;
+  color: #536471;
+  font-size: 14px;
+}
+
+.cne-info-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f1419;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  width: 240px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 1;
+}
+
+.cne-info-tooltip strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cne-info-tooltip ul {
+  margin: 0;
+  padding-left: 16px;
+  list-style: disc;
+}
+
+.cne-info-tooltip li {
+  margin-bottom: 2px;
+}
+
+.cne-info-icon:hover .cne-info-tooltip {
+  display: block;
+}
+
 .cne-rating-pills {
   display: flex;
   gap: 8px;
