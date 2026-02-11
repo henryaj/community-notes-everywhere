@@ -1,6 +1,7 @@
 module Api
   class NotesController < ApplicationController
     before_action :authenticate!, only: [:create]
+    before_action :require_writing_reputation!, only: [:create]
 
     # GET /api/notes?url=URL
     def index
@@ -10,7 +11,11 @@ module Api
       page = Page.find_by(url: Page.normalize_url_string(url))
       notes = page ? page.notes.includes(:author, :ratings).order(created_at: :desc) : []
 
-      render json: notes.map { |note| serialize_note(note) }
+      render json: {
+        notes: notes.map { |note| serialize_note(note) },
+        can_rate: current_user&.can_rate? || false,
+        can_write: current_user&.can_write? || false
+      }
     end
 
     # POST /api/notes
@@ -35,11 +40,19 @@ module Api
 
     private
 
+    def require_writing_reputation!
+      unless current_user.can_write?
+        render json: { error: "You need a reputation score of at least #{User::MIN_WRITING_REPUTATION} to write notes" }, status: :forbidden
+      end
+    end
+
     def note_params
       params.require(:note).permit(:url, :body, :selected_text, :text_prefix, :text_suffix, :css_selector, :sources_linked)
     end
 
     def serialize_note(note)
+      user_rating = current_user && note.ratings.detect { |r| r.user_id == current_user.id }
+
       {
         id: note.id,
         body: note.body,
@@ -57,9 +70,9 @@ module Api
           handle: note.author.twitter_handle,
           display_name: note.author.display_name,
           avatar_url: note.author.avatar_url,
-          reputation_score: note.author.reputation_score
+          karma: note.author.karma
         },
-        current_user_rating: nil
+        current_user_rating: user_rating&.helpfulness
       }
     end
   end

@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  MIN_WRITING_REPUTATION = 25
+
   has_many :notes, foreign_key: :author_id, dependent: :destroy
   has_many :ratings, dependent: :destroy
 
@@ -18,6 +20,14 @@ class User < ApplicationRecord
     user
   end
 
+  def can_rate?
+    true
+  end
+
+  def can_write?
+    reputation_score >= MIN_WRITING_REPUTATION
+  end
+
   def recalculate_reputation!
     score = 0.0
 
@@ -32,14 +42,24 @@ class User < ApplicationRecord
       score += [Math.log10(follower_count) * 10, 30].min
     end
 
-    # Note history bonus (up to 50 points)
-    total_notes = notes.count
-    if total_notes > 0
-      helpful_notes = notes.where(status: :helpful).count
-      score += (helpful_notes.to_f / total_notes) * 50
+    # Rating accuracy bonus (up to 50 points)
+    decided_yes_no = ratings.joins(:note)
+      .where(notes: { status: [:helpful, :not_helpful] })
+      .where(helpfulness: [:yes, :no])
+    total_decided = decided_yes_no.count
+    if total_decided > 0
+      accurate_count = decided_yes_no
+        .where("(ratings.helpfulness = 0 AND notes.status = 1) OR (ratings.helpfulness = 2 AND notes.status = 2)")
+        .count
+      score += (accurate_count.to_f / total_decided) * 50
     end
 
     update!(reputation_score: score.round(2))
+  end
+
+  def recalculate_karma!
+    total = notes.sum("helpful_count + somewhat_count * 0.5 - not_helpful_count")
+    update!(karma: total.round(2))
   end
 
   private

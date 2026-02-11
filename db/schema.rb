@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_124011) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_11_141535) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -61,6 +61,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_124011) do
     t.datetime "created_at", null: false
     t.string "display_name"
     t.integer "follower_count"
+    t.float "karma", default: 0.0, null: false
     t.float "reputation_score", default: 0.0
     t.string "twitter_handle"
     t.string "twitter_uid", null: false

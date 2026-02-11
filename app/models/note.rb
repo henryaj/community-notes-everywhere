@@ -11,9 +11,14 @@ class Note < ApplicationRecord
   def update_status!
     positive_count = helpful_count + somewhat_count
     if positive_count >= 3 && positive_count > not_helpful_count * 2
-      update!(status: :helpful)
+      self.status = :helpful
     elsif not_helpful_count >= 3 && not_helpful_count > positive_count * 2
-      update!(status: :not_helpful)
+      self.status = :not_helpful
+    end
+
+    if status_changed?
+      save!
+      ratings.includes(:user).find_each { |r| r.user.recalculate_reputation! }
     end
   end
 end

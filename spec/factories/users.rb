@@ -7,6 +7,7 @@ FactoryBot.define do
     follower_count { 100 }
     account_created_at { 2.years.ago }
     reputation_score { 0.0 }
+    karma { 0.0 }
     sequence(:auth_token) { |n| SecureRandom.hex(32) }
   end
 end

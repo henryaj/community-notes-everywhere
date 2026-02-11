@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("reputation").textContent = Math.round(
         me.reputation_score
       );
+      document.getElementById("karma").textContent = me.karma != null ? me.karma : 0;
       document.getElementById("notes-count").textContent = me.notes_count;
       document.getElementById("ratings-count").textContent = me.ratings_count;
     }

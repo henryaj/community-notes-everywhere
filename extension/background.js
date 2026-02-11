@@ -95,7 +95,9 @@ async function apiFetch(path, options = {}) {
 }
 
 async function fetchNotes(url) {
-  return apiFetch(`/api/notes?url=${encodeURIComponent(url)}`);
+  const response = await apiFetch(`/api/notes?url=${encodeURIComponent(url)}`);
+  if (response.error) return response;
+  return { notes: response.notes, canRate: response.can_rate, canWrite: response.can_write };
 }
 
 async function createNote(note) {

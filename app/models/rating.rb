@@ -19,5 +19,6 @@ class Rating < ApplicationRecord
       not_helpful_count: note.ratings.no.count
     )
     note.update_status!
+    note.author.recalculate_karma!
   end
 end

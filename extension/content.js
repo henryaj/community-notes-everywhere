@@ -9,6 +9,9 @@
   if (!chrome?.runtime?.sendMessage) return;
 
   let notes = [];
+  let canRate = false;
+  let canWrite = false;
+  let showAllNotes = false;
   let addNoteButton = null;
 
   // ── Anchoring functions (mirrored in anchoring.js for testing) ──
@@ -166,26 +169,61 @@
       url: window.location.href,
     });
 
-    if (Array.isArray(response)) {
-      notes = response;
+    if (response && response.notes) {
+      notes = response.notes;
+      canRate = response.canRate || false;
+      canWrite = response.canWrite || false;
       highlightNotes();
     }
   }
 
   function highlightNotes() {
-    document.querySelectorAll(".cne-highlight").forEach((el) => el.remove());
+    document.querySelectorAll(".cne-highlight").forEach((el) => {
+      el.replaceWith(...el.childNodes);
+    });
 
-    notes.forEach((note) => {
+    const visibleNotes = showAllNotes
+      ? notes
+      : notes.filter((note) => note.status === "helpful");
+
+    visibleNotes.forEach((note) => {
       const range = findTextRange(note);
       if (range) {
         wrapRangeWithHighlight(range, note);
       }
     });
+
+    updateToggleButton();
+  }
+
+  function updateToggleButton() {
+    let btn = document.querySelector(".cne-toggle-btn");
+    const hiddenCount = notes.filter((n) => n.status !== "helpful").length;
+
+    if (hiddenCount === 0) {
+      if (btn) btn.remove();
+      return;
+    }
+
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.className = "cne-toggle-btn";
+      document.body.appendChild(btn);
+      btn.addEventListener("click", () => {
+        showAllNotes = !showAllNotes;
+        highlightNotes();
+      });
+    }
+
+    btn.textContent = showAllNotes
+      ? "Hide unrated notes"
+      : `Show ${hiddenCount} unrated note${hiddenCount === 1 ? "" : "s"}`;
   }
 
   function wrapRangeWithHighlight(range, note) {
     const highlight = document.createElement("span");
     highlight.className = "cne-highlight";
+    highlight.classList.add("cne-highlight-" + note.status);
     highlight.dataset.noteId = note.id;
     highlight.title = `Community Note by @${note.author.handle}`;
 
@@ -216,6 +254,30 @@
     }
   }
 
+  const POPOVER_WIDTH = 360;
+  const GAP = 8;
+
+  function computePopoverPosition(anchorRect) {
+    const viewportWidth = window.innerWidth;
+    const effectiveWidth = Math.min(POPOVER_WIDTH, viewportWidth * 0.9);
+    const spaceRight = viewportWidth - anchorRect.right;
+    const spaceLeft = anchorRect.left;
+
+    if (spaceRight >= effectiveWidth + GAP) {
+      return { placement: "right",
+               top: window.scrollY + anchorRect.top,
+               left: window.scrollX + anchorRect.right + GAP };
+    } else if (spaceLeft >= effectiveWidth + GAP) {
+      return { placement: "left",
+               top: window.scrollY + anchorRect.top,
+               left: window.scrollX + anchorRect.left - effectiveWidth - GAP };
+    } else {
+      return { placement: "below",
+               top: window.scrollY + anchorRect.bottom + GAP,
+               left: window.scrollX + anchorRect.left };
+    }
+  }
+
   function showNotePopover(anchor, note) {
     document.querySelectorAll(".cne-popover").forEach((el) => el.remove());
 
@@ -223,10 +285,12 @@
     popover.className = "cne-popover";
     popover.innerHTML = `
       <div class="cne-popover-header">
-        <img src="${escapeHtml(note.author.avatar_url || "")}" class="cne-avatar" alt="" />
         <div class="cne-author-info">
           <strong>${escapeHtml(note.author.display_name)}</strong>
-          <span class="cne-handle">@${escapeHtml(note.author.handle)}</span>
+          <span class="cne-handle-line">
+            <a href="https://x.com/${encodeURIComponent(note.author.handle)}" target="_blank" rel="noopener noreferrer" class="cne-handle">@${escapeHtml(note.author.handle)}</a>
+            ${note.author.karma != null ? `<span class="cne-karma">&middot; ${note.author.karma} karma</span>` : ''}
+          </span>
         </div>
         <button class="cne-close">&times;</button>
       </div>
@@ -236,21 +300,32 @@
       <div class="cne-popover-status">
         ${formatStatusBadge(note)}
       </div>
-      <div class="cne-popover-footer">
+      ${canRate ? `<div class="cne-popover-footer">
         <span class="cne-rating-label">Is this note helpful?</span>
         <div class="cne-rating-pills">
-          <button class="cne-pill-btn" data-note-id="${note.id}" data-helpfulness="yes">Yes${note.helpful_count ? ' ' + note.helpful_count : ''}</button>
-          <button class="cne-pill-btn" data-note-id="${note.id}" data-helpfulness="somewhat">Somewhat${note.somewhat_count ? ' ' + note.somewhat_count : ''}</button>
-          <button class="cne-pill-btn" data-note-id="${note.id}" data-helpfulness="no">No${note.not_helpful_count ? ' ' + note.not_helpful_count : ''}</button>
+          <button class="cne-pill-btn${note.current_user_rating === 'yes' ? ' cne-pill-selected' : ''}" data-note-id="${note.id}" data-helpfulness="yes">Yes</button>
+          <button class="cne-pill-btn${note.current_user_rating === 'somewhat' ? ' cne-pill-selected' : ''}" data-note-id="${note.id}" data-helpfulness="somewhat">Somewhat</button>
+          <button class="cne-pill-btn${note.current_user_rating === 'no' ? ' cne-pill-selected' : ''}" data-note-id="${note.id}" data-helpfulness="no">No</button>
         </div>
-      </div>
+      </div>` : ''}
     `;
 
     const rect = anchor.getBoundingClientRect();
-    popover.style.top = `${window.scrollY + rect.bottom + 8}px`;
-    popover.style.left = `${window.scrollX + rect.left}px`;
+    const position = computePopoverPosition(rect);
+    popover.style.top = `${position.top}px`;
+    popover.style.left = `${position.left}px`;
+    popover.dataset.placement = position.placement;
 
     document.body.appendChild(popover);
+
+    // Clamp vertical overflow for side-positioned popovers
+    if (position.placement !== "below") {
+      const popoverRect = popover.getBoundingClientRect();
+      const overflow = popoverRect.bottom - window.innerHeight;
+      if (overflow > 0) {
+        popover.style.top = `${Math.max(window.scrollY, position.top - overflow - GAP)}px`;
+      }
+    }
 
     popover
       .querySelector(".cne-close")
@@ -273,9 +348,9 @@
           btn.classList.add("cne-pill-selected");
 
           const pills = popover.querySelectorAll(".cne-pill-btn");
-          pills[0].textContent = `Yes${result.note.helpful_count ? ' ' + result.note.helpful_count : ''}`;
-          pills[1].textContent = `Somewhat${result.note.somewhat_count ? ' ' + result.note.somewhat_count : ''}`;
-          pills[2].textContent = `No${result.note.not_helpful_count ? ' ' + result.note.not_helpful_count : ''}`;
+          pills[0].textContent = 'Yes';
+          pills[1].textContent = 'Somewhat';
+          pills[2].textContent = 'No';
 
           // Update status badge
           const statusEl = popover.querySelector(".cne-popover-status");
@@ -284,21 +359,24 @@
             note.helpful_count = result.note.helpful_count;
             note.somewhat_count = result.note.somewhat_count;
             note.not_helpful_count = result.note.not_helpful_count;
+            note.current_user_rating = helpfulness;
             statusEl.innerHTML = formatStatusBadge(note);
           }
         }
       });
     });
 
-    document.addEventListener(
-      "click",
-      (e) => {
-        if (!popover.contains(e.target) && !anchor.contains(e.target)) {
-          popover.remove();
-        }
-      },
-      { once: true }
-    );
+    function onClickOutside(e) {
+      if (!popover.contains(e.target) && !anchor.contains(e.target)) {
+        popover.remove();
+        document.removeEventListener("click", onClickOutside, true);
+      }
+    }
+
+    // Use capture phase + setTimeout so the opening click doesn't immediately dismiss
+    setTimeout(() => {
+      document.addEventListener("click", onClickOutside, true);
+    }, 0);
   }
 
   document.addEventListener("mouseup", (e) => {
@@ -306,6 +384,8 @@
       return;
 
     removeAddNoteButton();
+
+    if (!canWrite) return;
 
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.toString().trim())

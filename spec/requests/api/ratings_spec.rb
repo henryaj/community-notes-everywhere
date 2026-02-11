@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Api::Ratings", type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:user, reputation_score: 30.0) }
   let(:auth_headers) { { "Authorization" => "Bearer #{user.auth_token}" } }
   let(:note) { create(:note) }
 
@@ -49,6 +49,15 @@ RSpec.describe "Api::Ratings", type: :request do
       post "/api/notes/#{note.id}/ratings", params: { helpfulness: "yes" }
 
       expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "allows a zero-reputation user to rate" do
+      zero_rep_user = create(:user, reputation_score: 0.0)
+      headers = { "Authorization" => "Bearer #{zero_rep_user.auth_token}" }
+
+      post "/api/notes/#{note.id}/ratings", params: { helpfulness: "yes" }, headers: headers
+
+      expect(response).to have_http_status(:created)
     end
   end
 end

@@ -6,20 +6,26 @@ class AuthController < ApplicationController
     redirect_to_extension(user)
   end
 
-  # GET /auth/dev — dev-only login, creates a test user and returns token
+  # GET /auth/dev?user=handle — dev-only login
+  # Pass ?user=handle to log in as an existing user (preserves DB reputation).
+  # Without the param, creates/updates a default dev_tester account.
   def dev
     raise ActionController::RoutingError, "Not Found" unless Rails.env.development?
 
-    user = User.find_or_initialize_by(twitter_uid: "dev_user")
-    user.assign_attributes(
-      twitter_handle: "dev_tester",
-      display_name: "Dev Tester",
-      avatar_url: "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
-      follower_count: 500,
-      account_created_at: 3.years.ago
-    )
-    user.save!
-    user.recalculate_reputation!
+    if params[:user].present?
+      user = User.find_by!(twitter_handle: params[:user])
+    else
+      user = User.find_or_initialize_by(twitter_uid: "dev_user")
+      user.assign_attributes(
+        twitter_handle: "dev_tester",
+        display_name: "Dev Tester",
+        avatar_url: "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+        follower_count: 500,
+        account_created_at: 3.years.ago
+      )
+      user.save!
+      user.recalculate_reputation!
+    end
 
     redirect_to_extension(user)
   end
