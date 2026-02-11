@@ -2,6 +2,6 @@ FactoryBot.define do
   factory :rating do
     association :user
     association :note
-    helpful { true }
+    helpfulness { :yes }
   end
 end

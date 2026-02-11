@@ -9,9 +9,10 @@ class Note < ApplicationRecord
   validates :selected_text, presence: true
 
   def update_status!
-    if helpful_count >= 3 && helpful_count > not_helpful_count * 2
+    positive_count = helpful_count + somewhat_count
+    if positive_count >= 3 && positive_count > not_helpful_count * 2
       update!(status: :helpful)
-    elsif not_helpful_count >= 3 && not_helpful_count > helpful_count * 2
+    elsif not_helpful_count >= 3 && not_helpful_count > positive_count * 2
       update!(status: :not_helpful)
     end
   end

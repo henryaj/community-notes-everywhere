@@ -97,7 +97,8 @@
   margin: 0;
 }
 
-.cne-popover-footer {
+/* Status badge area */
+.cne-popover-status {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -105,46 +106,85 @@
   border-top: 1px solid #eff3f4;
 }
 
-.cne-status {
-  font-size: 12px;
+.cne-status-badge {
+  font-size: 13px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.cne-status-pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.cne-status-helpful {
+.cne-badge-helpful {
   background: #d1e7dd;
   color: #0f5132;
 }
 
-.cne-status-not_helpful {
+.cne-badge-not-helpful {
   background: #f8d7da;
   color: #842029;
 }
 
-.cne-rating-buttons {
+.cne-badge-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.cne-ratings-count {
+  font-size: 12px;
+  color: #536471;
+}
+
+/* Rating pill buttons */
+.cne-popover-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid #eff3f4;
+}
+
+.cne-rating-label {
+  font-size: 13px;
+  color: #536471;
+  font-weight: 500;
+}
+
+.cne-rating-pills {
   display: flex;
   gap: 8px;
 }
 
-.cne-rate-btn {
-  background: none;
+.cne-pill-btn {
+  background: white;
   border: 1px solid #cfd9de;
   border-radius: 20px;
-  padding: 4px 12px;
+  padding: 6px 16px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.15s ease;
+  color: #0f1419;
+  font-family: inherit;
 }
 
-.cne-rate-btn:hover {
-  background: #eff3f4;
+.cne-pill-btn:hover {
+  background: #e8f5fd;
+  border-color: #1d9bf0;
+  color: #1d9bf0;
+}
+
+.cne-pill-selected {
+  background: #1d9bf0;
+  border-color: #1d9bf0;
+  color: white;
+}
+
+.cne-pill-selected:hover {
+  background: #1a8cd8;
+  border-color: #1a8cd8;
+  color: white;
 }
 
 /* Note creation form */
@@ -255,4 +295,32 @@
 
 .cne-link:hover {
   text-decoration: underline;
+}
+
+/* Source self-check */
+.cne-source-check {
+  padding: 10px 14px;
+  border-top: 1px solid #eff3f4;
+}
+
+.cne-source-question {
+  font-size: 13px;
+  color: #536471;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.cne-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #0f1419;
+}
+
+.cne-radio {
+  accent-color: #1d9bf0;
+  cursor: pointer;
 }

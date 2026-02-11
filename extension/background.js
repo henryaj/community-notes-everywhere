@@ -48,7 +48,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "RATE_NOTE") {
-    rateNote(message.noteId, message.helpful).then(sendResponse);
+    rateNote(message.noteId, message.helpfulness).then(sendResponse);
     return true;
   }
 
@@ -105,10 +105,10 @@ async function createNote(note) {
   });
 }
 
-async function rateNote(noteId, helpful) {
+async function rateNote(noteId, helpfulness) {
   return apiFetch(`/api/notes/${noteId}/ratings`, {
     method: "POST",
-    body: JSON.stringify({ helpful }),
+    body: JSON.stringify({ helpfulness }),
   });
 }
 

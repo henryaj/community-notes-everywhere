@@ -203,6 +203,19 @@
     });
   }
 
+  function formatStatusBadge(note) {
+    const totalRatings = (note.helpful_count || 0) + (note.somewhat_count || 0) + (note.not_helpful_count || 0);
+    const ratingsText = totalRatings === 1 ? '1 rating' : `${totalRatings} ratings`;
+
+    if (note.status === 'helpful') {
+      return `<span class="cne-status-badge cne-badge-helpful">&#x2713; Currently rated helpful</span><span class="cne-ratings-count">${ratingsText}</span>`;
+    } else if (note.status === 'not_helpful') {
+      return `<span class="cne-status-badge cne-badge-not-helpful">&#x2717; Currently not rated helpful</span><span class="cne-ratings-count">${ratingsText}</span>`;
+    } else {
+      return `<span class="cne-status-badge cne-badge-pending">&#x25CB; Needs more ratings</span><span class="cne-ratings-count">${ratingsText}</span>`;
+    }
+  }
+
   function showNotePopover(anchor, note) {
     document.querySelectorAll(".cne-popover").forEach((el) => el.remove());
 
@@ -220,15 +233,15 @@
       <div class="cne-popover-body">
         <p>${linkify(escapeHtml(note.body))}</p>
       </div>
+      <div class="cne-popover-status">
+        ${formatStatusBadge(note)}
+      </div>
       <div class="cne-popover-footer">
-        <span class="cne-status cne-status-${note.status}">${note.status}</span>
-        <div class="cne-rating-buttons">
-          <button class="cne-rate-btn cne-rate-helpful" data-note-id="${note.id}" data-helpful="true">
-            &#x1F44D; ${note.helpful_count}
-          </button>
-          <button class="cne-rate-btn cne-rate-not-helpful" data-note-id="${note.id}" data-helpful="false">
-            &#x1F44E; ${note.not_helpful_count}
-          </button>
+        <span class="cne-rating-label">Is this note helpful?</span>
+        <div class="cne-rating-pills">
+          <button class="cne-pill-btn" data-note-id="${note.id}" data-helpfulness="yes">Yes${note.helpful_count ? ' ' + note.helpful_count : ''}</button>
+          <button class="cne-pill-btn" data-note-id="${note.id}" data-helpfulness="somewhat">Somewhat${note.somewhat_count ? ' ' + note.somewhat_count : ''}</button>
+          <button class="cne-pill-btn" data-note-id="${note.id}" data-helpfulness="no">No${note.not_helpful_count ? ' ' + note.not_helpful_count : ''}</button>
         </div>
       </div>
     `;
@@ -243,22 +256,36 @@
       .querySelector(".cne-close")
       .addEventListener("click", () => popover.remove());
 
-    popover.querySelectorAll(".cne-rate-btn").forEach((btn) => {
+    popover.querySelectorAll(".cne-pill-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const helpful = btn.dataset.helpful === "true";
+        const helpfulness = btn.dataset.helpfulness;
         const result = await chrome.runtime.sendMessage({
           type: "RATE_NOTE",
           noteId: parseInt(btn.dataset.noteId),
-          helpful,
+          helpfulness,
         });
 
         if (result && !result.error) {
-          popover.querySelector(
-            ".cne-rate-helpful"
-          ).innerHTML = `&#x1F44D; ${result.note.helpful_count}`;
-          popover.querySelector(
-            ".cne-rate-not-helpful"
-          ).innerHTML = `&#x1F44E; ${result.note.not_helpful_count}`;
+          // Update pill button text with new counts
+          popover.querySelectorAll(".cne-pill-btn").forEach((b) => {
+            b.classList.remove("cne-pill-selected");
+          });
+          btn.classList.add("cne-pill-selected");
+
+          const pills = popover.querySelectorAll(".cne-pill-btn");
+          pills[0].textContent = `Yes${result.note.helpful_count ? ' ' + result.note.helpful_count : ''}`;
+          pills[1].textContent = `Somewhat${result.note.somewhat_count ? ' ' + result.note.somewhat_count : ''}`;
+          pills[2].textContent = `No${result.note.not_helpful_count ? ' ' + result.note.not_helpful_count : ''}`;
+
+          // Update status badge
+          const statusEl = popover.querySelector(".cne-popover-status");
+          if (statusEl) {
+            note.status = result.note.status;
+            note.helpful_count = result.note.helpful_count;
+            note.somewhat_count = result.note.somewhat_count;
+            note.not_helpful_count = result.note.not_helpful_count;
+            statusEl.innerHTML = formatStatusBadge(note);
+          }
         }
       });
     });
@@ -398,6 +425,17 @@
         Be precise — providing links to outside sources is required.
       </div>
       <textarea class="cne-form-textarea" placeholder="Add context and link to trustworthy sources..." rows="4"></textarea>
+      <div class="cne-source-check">
+        <p class="cne-source-question">Did you link to sources you believe most people would consider trustworthy?</p>
+        <label class="cne-radio-label">
+          <input type="radio" name="cne-sources-linked" value="true" class="cne-radio" />
+          Yes
+        </label>
+        <label class="cne-radio-label">
+          <input type="radio" name="cne-sources-linked" value="false" class="cne-radio" />
+          No
+        </label>
+      </div>
       <div class="cne-form-actions">
         <button class="cne-form-cancel">Cancel</button>
         <button class="cne-form-submit">Submit Note</button>
@@ -429,6 +467,9 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Submitting...";
 
+        const sourcesRadio = form.querySelector('input[name="cne-sources-linked"]:checked');
+        const sourcesLinked = sourcesRadio ? sourcesRadio.value === "true" : null;
+
         const result = await chrome.runtime.sendMessage({
           type: "CREATE_NOTE",
           note: {
@@ -438,6 +479,7 @@
             text_prefix: context.textPrefix,
             text_suffix: context.textSuffix,
             css_selector: context.cssSelector,
+            sources_linked: sourcesLinked,
           },
         });
 

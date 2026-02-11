@@ -6,15 +6,16 @@ module Api
     def create
       note = Note.find(params[:note_id])
       rating = current_user.ratings.find_or_initialize_by(note: note)
-      rating.helpful = params[:helpful]
+      rating.helpfulness = params[:helpfulness]
 
       if rating.save
         render json: {
           id: rating.id,
-          helpful: rating.helpful,
+          helpfulness: rating.helpfulness,
           note: {
             id: note.id,
             helpful_count: note.reload.helpful_count,
+            somewhat_count: note.somewhat_count,
             not_helpful_count: note.not_helpful_count,
             status: note.status
           }

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_150250) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_11_124011) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_150250) do
     t.integer "not_helpful_count", default: 0, null: false
     t.bigint "page_id", null: false
     t.text "selected_text", null: false
+    t.integer "somewhat_count", default: 0, null: false
+    t.boolean "sources_linked"
     t.integer "status", default: 0, null: false
     t.string "text_prefix"
     t.string "text_suffix"
@@ -43,7 +45,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_150250) do
 
   create_table "ratings", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.boolean "helpful", null: false
+    t.integer "helpfulness", null: false
     t.bigint "note_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false

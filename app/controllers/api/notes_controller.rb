@@ -22,7 +22,8 @@ module Api
         selected_text: note_params[:selected_text],
         text_prefix: note_params[:text_prefix],
         text_suffix: note_params[:text_suffix],
-        css_selector: note_params[:css_selector]
+        css_selector: note_params[:css_selector],
+        sources_linked: note_params[:sources_linked]
       )
 
       if note.save
@@ -35,7 +36,7 @@ module Api
     private
 
     def note_params
-      params.require(:note).permit(:url, :body, :selected_text, :text_prefix, :text_suffix, :css_selector)
+      params.require(:note).permit(:url, :body, :selected_text, :text_prefix, :text_suffix, :css_selector, :sources_linked)
     end
 
     def serialize_note(note)
@@ -48,6 +49,7 @@ module Api
         css_selector: note.css_selector,
         status: note.status,
         helpful_count: note.helpful_count,
+        somewhat_count: note.somewhat_count,
         not_helpful_count: note.not_helpful_count,
         created_at: note.created_at.iso8601,
         author: {
