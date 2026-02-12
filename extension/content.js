@@ -906,7 +906,7 @@
           <button class="cne-discard-yes" type="button">Discard</button>
           <button class="cne-discard-no" type="button">Keep editing</button>
         `;
-        form.querySelector(".cne-form-actions").before(bar);
+        form.querySelector(".cne-form-header").after(bar);
         bar.querySelector(".cne-discard-yes").addEventListener("click", () => form.remove());
         bar.querySelector(".cne-discard-no").addEventListener("click", () => {
           bar.remove();
