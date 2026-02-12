@@ -11,6 +11,7 @@
   let notes = [];
   let canRate = false;
   let canWrite = false;
+  let canRequestAiNotes = false;
   let showAllNotes = false;
   let addNoteButton = null;
   let apiBase = '';
@@ -178,6 +179,7 @@
       notes = response.notes;
       canRate = response.canRate || false;
       canWrite = response.canWrite || false;
+      canRequestAiNotes = response.canRequestAiNotes || false;
       apiBase = response.apiBase || '';
       highlightNotes();
     }
@@ -318,8 +320,9 @@
         <button class="cne-close">&times;</button>
       </div>
       <div class="cne-popover-body">
-        <p>${linkify(escapeHtml(note.body))}</p>
+        <p>${linkify(escapeHtml(note.body).replace(/\n/g, '<br>'))}</p>
         ${note.edited_at ? `<span class="cne-edited-label">edited</span>` : ''}
+        ${note.ai_generated ? `<span class="cne-ai-label" title="${escapeHtml(note.ai_model || '')}">AI-generated</span>` : ''}
       </div>
       <div class="cne-popover-status">
         ${formatStatusBadge(note)}
@@ -446,7 +449,7 @@
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
         body.querySelector(".cne-edit-cancel").addEventListener("click", () => {
-          body.innerHTML = `<p>${linkify(escapeHtml(note.body))}</p>`;
+          body.innerHTML = `<p>${linkify(escapeHtml(note.body).replace(/\n/g, '<br>'))}</p>`;
         });
 
         body.querySelector(".cne-edit-save").addEventListener("click", async () => {
@@ -465,7 +468,7 @@
 
           if (result && !result.error) {
             note.body = result.body || newBody;
-            body.innerHTML = `<p>${linkify(escapeHtml(note.body))}</p>`;
+            body.innerHTML = `<p>${linkify(escapeHtml(note.body).replace(/\n/g, '<br>'))}</p>`;
             // Update the note in the local array
             const idx = notes.findIndex((n) => n.id === note.id);
             if (idx !== -1) notes[idx] = { ...notes[idx], body: note.body };
@@ -659,9 +662,9 @@
 
     addNoteButton = document.createElement("button");
     addNoteButton.className = "cne-add-note-btn";
-    addNoteButton.textContent = "+ Add Note";
-    addNoteButton.style.top = `${window.scrollY + rect.bottom + 4}px`;
-    addNoteButton.style.left = `${window.scrollX + rect.left + rect.width / 2}px`;
+    addNoteButton.textContent = "+ Note";
+    addNoteButton.style.top = `${window.scrollY + rect.top}px`;
+    addNoteButton.style.left = `${window.scrollX + rect.right + 6}px`;
 
     addNoteButton.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -753,12 +756,15 @@
   function showNoteForm(rect, selectedText, context) {
     document.querySelectorAll(".cne-note-form").forEach((el) => el.remove());
 
+    let aiDraft = null;
+
     const form = document.createElement("div");
     form.className = "cne-note-form";
     form.innerHTML = `
       <div class="cne-form-header">
         <strong>Add Community Note</strong>
         <span class="cne-info-icon">&#x24D8;<span class="cne-info-tooltip"><strong>Tips for writing a good note:</strong><ul><li>Cite high-quality, trustworthy sources</li><li>Be accurate, specific, and up to date</li><li>Provide important context others may be missing</li><li>Write clearly and concisely</li><li>Be neutral and non-inflammatory</li><li>Consider whether people across different viewpoints would find it useful</li></ul></span></span>
+        ${canRequestAiNotes ? '<button class="cne-ai-draft-btn">AI Context</button>' : ''}
         <button class="cne-close">&times;</button>
       </div>
       <textarea class="cne-form-textarea" placeholder="Add context and link to trustworthy sources..." rows="4"></textarea>
@@ -787,7 +793,81 @@
     document.body.appendChild(form);
 
     const textarea = form.querySelector(".cne-form-textarea");
+    textarea.addEventListener("input", () => autoResizeTextarea(textarea));
     textarea.focus();
+
+    // AI Context button handler
+    const aiBtn = form.querySelector(".cne-ai-draft-btn");
+    if (aiBtn) {
+      aiBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        aiBtn.disabled = true;
+        aiBtn.textContent = "Generating...";
+
+        // Create or reuse preview area
+        let previewArea = form.querySelector(".cne-ai-preview");
+        if (!previewArea) {
+          previewArea = document.createElement("div");
+          previewArea.className = "cne-ai-preview";
+          previewArea.innerHTML = `
+            <div class="cne-ai-preview-text"></div>
+            <div class="cne-ai-preview-actions" style="display:none;">
+              <button class="cne-ai-use-draft">Use this draft</button>
+            </div>
+          `;
+          textarea.parentNode.insertBefore(previewArea, textarea);
+        }
+
+        const previewText = previewArea.querySelector(".cne-ai-preview-text");
+        const previewActions = previewArea.querySelector(".cne-ai-preview-actions");
+        previewText.textContent = "";
+        previewActions.style.display = "none";
+        previewArea.style.display = "none";
+
+        const result = await chrome.runtime.sendMessage({
+          type: "GENERATE_AI_DRAFT",
+          selectedText,
+          url: window.location.href,
+          surroundingText: context.textPrefix + context.textSuffix,
+        });
+
+        if (result && !result.error) {
+          aiDraft = { aiModel: result.model };
+
+          // Stream text word by word
+          const words = result.body.split(/(\s+)/);
+          let i = 0;
+          function showNextWord() {
+            if (i < words.length) {
+              if (i === 0) previewArea.style.display = "block";
+              previewText.textContent += words[i];
+              i++;
+              requestAnimationFrame(showNextWord);
+            } else {
+              // Done streaming — show action button
+              previewActions.style.display = "flex";
+              aiBtn.textContent = "Regenerate";
+              aiBtn.disabled = false;
+            }
+          }
+          showNextWord();
+
+          // Wire up "Use this draft" button
+          const useBtn = previewActions.querySelector(".cne-ai-use-draft");
+          useBtn.onclick = () => {
+            textarea.value = result.body;
+            autoResizeTextarea(textarea);
+            previewArea.style.display = "none";
+            textarea.focus();
+          };
+        } else {
+          previewText.textContent = result?.error || "Failed to generate AI draft.";
+          previewText.classList.add("cne-ai-preview-error");
+          aiBtn.textContent = "AI Context";
+          aiBtn.disabled = false;
+        }
+      });
+    }
 
     form
       .querySelector(".cne-close")
@@ -815,9 +895,7 @@
 
         const sourcesLinked = true;
 
-        const result = await chrome.runtime.sendMessage({
-          type: "CREATE_NOTE",
-          note: {
+        const notePayload = {
             url: window.location.href,
             body,
             selected_text: selectedText,
@@ -825,7 +903,15 @@
             text_suffix: context.textSuffix,
             css_selector: context.cssSelector,
             sources_linked: sourcesLinked,
-          },
+        };
+        if (aiDraft) {
+          notePayload.ai_generated = true;
+          notePayload.ai_model = aiDraft.aiModel;
+        }
+
+        const result = await chrome.runtime.sendMessage({
+          type: "CREATE_NOTE",
+          note: notePayload,
         });
 
         if (result && !result.error) {
@@ -928,6 +1014,11 @@
     if (days < 30) return `${days}d ago`;
     const months = Math.floor(days / 30);
     return `${months}mo ago`;
+  }
+
+  function autoResizeTextarea(el) {
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
   }
 
   function escapeHtml(str) {
