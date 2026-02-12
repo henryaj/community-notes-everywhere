@@ -10,9 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_162413) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_180431) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "flipper_features", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "key", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_flipper_features_on_key", unique: true
+  end
+
+  create_table "flipper_gates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "feature_key", null: false
+    t.string "key", null: false
+    t.datetime "updated_at", null: false
+    t.text "value"
+    t.index ["feature_key", "key", "value"], name: "index_flipper_gates_on_feature_key_and_key_and_value", unique: true
+  end
 
   create_table "note_status_changes", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -34,6 +50,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_162413) do
   end
 
   create_table "notes", force: :cascade do |t|
+    t.boolean "ai_generated", default: false, null: false
+    t.string "ai_model"
     t.bigint "author_id", null: false
     t.text "body", null: false
     t.datetime "created_at", null: false

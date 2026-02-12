@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  include Flipper::Identifier
   MIN_RATING_REPUTATION = 15
   MIN_WRITING_REPUTATION = 25
 
@@ -32,6 +33,10 @@ class User < ApplicationRecord
 
   def can_write?
     reputation_score >= MIN_WRITING_REPUTATION
+  end
+
+  def can_request_ai_notes?
+    Flipper.enabled?(:ai_notes, self)
   end
 
   def recalculate_reputation!
