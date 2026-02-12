@@ -760,9 +760,6 @@
         <strong>Add Community Note</strong>
         <button class="cne-close">&times;</button>
       </div>
-      <div class="cne-form-selected">
-        <em>"${escapeHtml(selectedText.substring(0, 100))}${selectedText.length > 100 ? "..." : ""}"</em>
-      </div>
       <div class="cne-form-guidance">
         Write a note with context that you believe should be shown with the post to keep others informed.
         Be precise — providing links to outside sources is required.
@@ -785,8 +782,10 @@
       </div>
     `;
 
-    form.style.top = `${window.scrollY + rect.bottom + 8}px`;
-    form.style.left = `${window.scrollX + Math.max(rect.left, 10)}px`;
+    const formPosition = computePopoverPosition(rect);
+    form.style.top = `${formPosition.top}px`;
+    form.style.left = `${formPosition.left}px`;
+    form.dataset.placement = formPosition.placement;
 
     document.body.appendChild(form);
 
@@ -806,12 +805,18 @@
         const body = textarea.value.trim();
         if (!body) return;
 
+        const sourcesRadio = form.querySelector('input[name="cne-sources-linked"]:checked');
+        if (!sourcesRadio || sourcesRadio.value !== "true") {
+          const sourceCheck = form.querySelector(".cne-source-check");
+          sourceCheck.classList.add("cne-source-check-error");
+          return;
+        }
+
         const submitBtn = form.querySelector(".cne-form-submit");
         submitBtn.disabled = true;
         submitBtn.textContent = "Submitting...";
 
-        const sourcesRadio = form.querySelector('input[name="cne-sources-linked"]:checked');
-        const sourcesLinked = sourcesRadio ? sourcesRadio.value === "true" : null;
+        const sourcesLinked = true;
 
         const result = await chrome.runtime.sendMessage({
           type: "CREATE_NOTE",

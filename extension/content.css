@@ -369,22 +369,78 @@ a.cne-handle:hover {
   color: #0f1419;
 }
 
+.cne-note-form[data-placement="right"] {
+  border-right: 3px solid #1d9bf0;
+}
+
+.cne-note-form[data-placement="left"] {
+  border-left: 3px solid #1d9bf0;
+}
+
+.cne-note-form[data-placement="right"]::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 18px;
+  border: 12px solid transparent;
+  border-right-color: #cfd9de;
+  border-left: none;
+}
+
+.cne-note-form[data-placement="right"]::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 19px;
+  border: 11px solid transparent;
+  border-right-color: white;
+  border-left: none;
+}
+
+.cne-note-form[data-placement="left"]::before {
+  content: "";
+  position: absolute;
+  right: -12px;
+  top: 18px;
+  border: 12px solid transparent;
+  border-left-color: #cfd9de;
+  border-right: none;
+}
+
+.cne-note-form[data-placement="left"]::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  top: 19px;
+  border: 11px solid transparent;
+  border-left-color: white;
+  border-right: none;
+}
+
+.cne-note-form[data-placement="below"]::before {
+  content: "";
+  position: absolute;
+  top: -16px;
+  left: 24px;
+  border: 8px solid transparent;
+  border-bottom-color: #cfd9de;
+}
+
+.cne-note-form[data-placement="below"]::after {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 25px;
+  border: 7px solid transparent;
+  border-bottom-color: white;
+}
+
 .cne-form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 14px;
   border-bottom: 1px solid #eff3f4;
-}
-
-.cne-form-selected {
-  padding: 10px 14px;
-  background: #f7f9f9;
-  font-size: 13px;
-  color: #536471;
-  border-bottom: 1px solid #eff3f4;
-  max-height: 60px;
-  overflow: hidden;
 }
 
 .cne-form-textarea {
@@ -490,6 +546,16 @@ a.cne-handle:hover {
 .cne-radio {
   accent-color: #1d9bf0;
   cursor: pointer;
+}
+
+.cne-source-check-error {
+  border-color: #f4212e;
+  background: #fef2f2;
+}
+
+.cne-source-check-error .cne-source-question {
+  color: #f4212e;
+  font-weight: 600;
 }
 
 /* Toggle button for showing/hiding unrated notes */
