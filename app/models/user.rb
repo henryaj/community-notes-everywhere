@@ -18,8 +18,9 @@ class User < ApplicationRecord
     user.twitter_handle = auth.info.nickname
     user.display_name = auth.info.name
     user.avatar_url = auth.info.image
-    user.follower_count = auth.extra.raw_info.public_metrics&.followers_count rescue nil
-    user.account_created_at = auth.extra.raw_info.created_at rescue nil
+    raw_data = auth.extra.raw_info.is_a?(Hash) ? (auth.extra.raw_info["data"] || auth.extra.raw_info) : auth.extra.raw_info
+    user.follower_count = raw_data.dig("public_metrics", "followers_count") rescue nil
+    user.account_created_at = raw_data["created_at"] rescue nil
     user.save!
     user.recalculate_reputation!
     user
