@@ -10,7 +10,7 @@
   ],
   "host_permissions": [
     "http://localhost:3000/*",
-    "https://*.herokuapp.com/*"
+    "https://notes.blmc.dev/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -39,7 +39,7 @@
   "externally_connectable": {
     "matches": [
       "http://localhost:3000/*",
-      "https://*.herokuapp.com/*"
+      "https://notes.blmc.dev/*"
     ]
   }
 }

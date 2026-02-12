@@ -1,10 +1,5 @@
-const API_BASE = (() => {
-  // If loaded unpacked (dev mode), use localhost
-  if (!chrome.runtime.getManifest().update_url) {
-    return "http://localhost:3000";
-  }
-  return "https://community-notes-everywhere-abc123.herokuapp.com";
-})();
+// Set to "http://localhost:3000" for local development
+const API_BASE = "https://notes.blmc.dev";
 
 document.addEventListener("DOMContentLoaded", async () => {
   const loginSection = document.getElementById("login-section");
