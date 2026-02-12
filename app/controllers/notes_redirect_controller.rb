@@ -6,7 +6,6 @@ class NotesRedirectController < ActionController::Base
 
     if @note.nil? || @note.hidden?
       render "not_found", status: :not_found
-      return
     end
   end
 end
