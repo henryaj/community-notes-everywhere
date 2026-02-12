@@ -58,6 +58,16 @@
 }
 
 /* Note popover */
+@keyframes cne-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cne-fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(4px); }
+}
+
 .cne-popover {
   position: absolute;
   z-index: 2147483647;
@@ -70,6 +80,11 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   color: #0f1419;
+  animation: cne-fade-in 0.15s ease-out;
+}
+
+.cne-popover.cne-popover-closing {
+  animation: cne-fade-out 0.15s ease-in forwards;
 }
 
 .cne-popover[data-placement="right"] {

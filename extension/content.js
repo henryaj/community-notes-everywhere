@@ -285,6 +285,14 @@
     }
   }
 
+  function dismissPopover(popover, onDone) {
+    popover.classList.add("cne-popover-closing");
+    popover.addEventListener("animationend", () => {
+      popover.remove();
+      if (onDone) onDone();
+    }, { once: true });
+  }
+
   async function showNotePopover(anchor, note) {
     document.querySelectorAll(".cne-popover").forEach((el) => el.remove());
 
@@ -398,7 +406,7 @@
 
     popover
       .querySelector(".cne-close")
-      .addEventListener("click", () => popover.remove());
+      .addEventListener("click", () => dismissPopover(popover));
 
     // ── Edit button handler ──
     const editBtn = popover.querySelector(".cne-edit-btn");
@@ -602,8 +610,9 @@
 
     function onClickOutside(e) {
       if (!popover.contains(e.target) && !anchor.contains(e.target)) {
-        popover.remove();
-        document.removeEventListener("click", onClickOutside, true);
+        dismissPopover(popover, () => {
+          document.removeEventListener("click", onClickOutside, true);
+        });
       }
     }
 
