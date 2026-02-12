@@ -260,7 +260,7 @@
   }
 
   const POPOVER_WIDTH = 360;
-  const GAP = 8;
+  const GAP = 14;
 
   function computePopoverPosition(anchorRect) {
     const viewportWidth = window.innerWidth;
