@@ -2,7 +2,7 @@ module Api
   class NotesController < ApplicationController
     before_action :authenticate!, only: [:create, :update, :destroy]
     before_action :require_writing_reputation!, only: [:create]
-    before_action :set_note, only: [:update, :destroy]
+    before_action :set_note, only: [:update, :destroy, :versions]
     before_action :authorize_author!, only: [:update, :destroy]
 
     # GET /api/notes?url=URL
@@ -42,11 +42,22 @@ module Api
 
     # PATCH /api/notes/:id
     def update
-      if @note.update(update_note_params)
+      if @note.created_at < 10.minutes.ago
+        return render json: { error: "Edit window has closed (10 minutes)" }, status: :forbidden
+      end
+
+      @note.note_versions.create!(previous_body: @note.body)
+      if @note.update(update_note_params.merge(edited_at: Time.current))
         render json: serialize_note(@note.reload)
       else
         render json: { errors: @note.errors.full_messages }, status: :unprocessable_entity
       end
+    end
+
+    # GET /api/notes/:id/versions
+    def versions
+      versions = @note.note_versions.order(created_at: :desc)
+      render json: versions.map { |v| { id: v.id, previous_body: v.previous_body, created_at: v.created_at.iso8601 } }
     end
 
     # DELETE /api/notes/:id
@@ -102,8 +113,10 @@ module Api
           handle: note.author.twitter_handle,
           display_name: note.author.display_name,
           avatar_url: note.author.avatar_url,
-          karma: note.author.karma
+          karma: note.author.karma.round(0).to_i
         },
+        edited_at: note.edited_at&.iso8601,
+        edit_window_closes_at: (note.created_at + 10.minutes).iso8601,
         current_user_rating: user_rating&.helpfulness,
         current_user_reported: user_reported || false
       }

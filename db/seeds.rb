@@ -30,6 +30,18 @@ User.find_or_create_by!(twitter_uid: "dev_user") do |u|
   u.karma = 0.0
 end
 
+dev_user = User.find_by(twitter_uid: "dev_user")
+dev_user&.update!(role: :superadmin)
+
+# Admin user for testing admin dashboard (not superadmin)
+admin_user = User.find_or_create_by!(twitter_uid: "seed_admin") do |u|
+  u.twitter_handle = "seed_admin"
+  u.display_name = "Seed Admin"
+  u.reputation_score = 40.0
+  u.karma = 5.0
+end
+admin_user.update!(role: :admin)
+
 # Low-rep user for testing gating
 User.find_or_create_by!(twitter_uid: "seed_newbie") do |u|
   u.twitter_handle = "testuser"

@@ -1,0 +1,74 @@
+<div class="max-w-3xl mx-auto px-6 py-12">
+  <h1 class="text-2xl font-bold mb-6">Your Account</h1>
+
+  <div class="bg-gray-50 rounded-lg p-6 mb-8">
+    <div class="flex items-center gap-4 mb-4">
+      <% if @user.avatar_url.present? %>
+        <img src="<%= @user.avatar_url %>" alt="Avatar" class="w-12 h-12 rounded-full" />
+      <% end %>
+      <div>
+        <p class="font-semibold text-lg"><%= @user.display_name %></p>
+        <p class="text-gray-500">@<%= @user.twitter_handle %></p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+      <div>
+        <p class="text-gray-500">Reputation</p>
+        <p class="font-semibold text-lg"><%= @user.reputation_score.round(1) %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Karma</p>
+        <p class="font-semibold text-lg"><%= @user.karma.round(0).to_i %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Notes</p>
+        <p class="font-semibold text-lg"><%= @notes.size %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Ratings</p>
+        <p class="font-semibold text-lg"><%= @ratings.size %></p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-4">Your Notes</h2>
+  <% if @notes.any? %>
+    <div class="space-y-4 mb-8">
+      <% @notes.each do |note| %>
+        <div class="border border-gray-200 rounded-lg p-4">
+          <p class="text-sm text-gray-500 mb-1">
+            on <span class="font-mono text-xs"><%= note.page.url.truncate(60) %></span>
+            &middot; <%= note.created_at.strftime("%b %d, %Y") %>
+          </p>
+          <p class="mb-2"><%= note.body.truncate(200) %></p>
+          <span class="inline-block text-xs px-2 py-0.5 rounded-full
+            <% if note.helpful? %>bg-green-100 text-green-800
+            <% elsif note.not_helpful? %>bg-red-100 text-red-800
+            <% else %>bg-gray-100 text-gray-600<% end %>">
+            <%= note.status.humanize %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-gray-500 mb-8">You haven't written any notes yet.</p>
+  <% end %>
+
+  <h2 class="text-xl font-semibold mb-4">Your Ratings</h2>
+  <% if @ratings.any? %>
+    <div class="space-y-4">
+      <% @ratings.each do |rating| %>
+        <div class="border border-gray-200 rounded-lg p-4">
+          <p class="text-sm text-gray-500 mb-1">
+            Rated <span class="font-semibold"><%= rating.helpfulness %></span>
+            on note by @<%= rating.note.author.twitter_handle %>
+            &middot; <%= rating.created_at.strftime("%b %d, %Y") %>
+          </p>
+          <p class="text-gray-700"><%= rating.note.body.truncate(150) %></p>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-gray-500">You haven't rated any notes yet.</p>
+  <% end %>
+</div>

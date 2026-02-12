@@ -7,6 +7,9 @@ class User < ApplicationRecord
 
   validates :twitter_uid, presence: true, uniqueness: true
 
+  enum :role, { user: 0, admin: 1, superadmin: 2 }
+  def admin_or_above? = admin? || superadmin?
+
   before_create :generate_auth_token
 
   def self.find_or_create_from_oauth(auth)

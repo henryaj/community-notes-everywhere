@@ -9,5 +9,13 @@ FactoryBot.define do
     reputation_score { 0.0 }
     karma { 0.0 }
     sequence(:auth_token) { |n| SecureRandom.hex(32) }
+
+    trait :admin do
+      role { :admin }
+    end
+
+    trait :superadmin do
+      role { :superadmin }
+    end
   end
 end

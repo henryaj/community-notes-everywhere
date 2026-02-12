@@ -199,6 +199,30 @@ RSpec.describe "Api::Notes", type: :request do
       expect(note.reload.body).not_to eq("Hacked")
     end
 
+    it "creates a version when editing within 10 minutes" do
+      patch "/api/notes/#{note.id}", params: {
+        note: { body: "Updated context" }
+      }, headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(note.note_versions.count).to eq(1)
+      expect(note.note_versions.first.previous_body).to eq("This claim needs additional context.")
+      expect(note.reload.edited_at).to be_present
+    end
+
+    it "returns 403 when editing after 10 minutes" do
+      note.update_column(:created_at, 11.minutes.ago)
+
+      patch "/api/notes/#{note.id}", params: {
+        note: { body: "Too late" }
+      }, headers: auth_headers
+
+      expect(response).to have_http_status(:forbidden)
+      json = JSON.parse(response.body)
+      expect(json["error"]).to include("Edit window")
+      expect(note.reload.body).not_to eq("Too late")
+    end
+
     it "does not allow updating selected_text" do
       original_text = note.selected_text
 
@@ -208,6 +232,23 @@ RSpec.describe "Api::Notes", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(note.reload.selected_text).to eq(original_text)
+    end
+  end
+
+  describe "GET /api/notes/:id/versions" do
+    let(:note) { create(:note, author: user) }
+
+    it "returns note versions" do
+      create(:note_version, note: note, previous_body: "First version")
+      create(:note_version, note: note, previous_body: "Second version")
+
+      get "/api/notes/#{note.id}/versions"
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json.length).to eq(2)
+      expect(json.first["previous_body"]).to be_present
+      expect(json.first["created_at"]).to be_present
     end
   end
 

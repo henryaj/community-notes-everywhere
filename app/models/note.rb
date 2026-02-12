@@ -3,6 +3,7 @@ class Note < ApplicationRecord
   belongs_to :page
   has_many :ratings, dependent: :destroy
   has_many :reports, dependent: :destroy
+  has_many :note_versions, dependent: :destroy
 
   enum :status, { pending: 0, helpful: 1, not_helpful: 2 }
 

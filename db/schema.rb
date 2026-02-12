@@ -10,15 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_134823) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_140931) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "note_versions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "note_id", null: false
+    t.text "previous_body", null: false
+    t.index ["note_id"], name: "index_note_versions_on_note_id"
+  end
 
   create_table "notes", force: :cascade do |t|
     t.bigint "author_id", null: false
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.string "css_selector"
+    t.datetime "edited_at"
     t.integer "helpful_count", default: 0, null: false
     t.integer "not_helpful_count", default: 0, null: false
     t.bigint "page_id", null: false
@@ -73,6 +81,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_134823) do
     t.integer "follower_count"
     t.float "karma", default: 0.0, null: false
     t.float "reputation_score", default: 0.0
+    t.integer "role", default: 0, null: false
     t.string "twitter_handle"
     t.string "twitter_uid", null: false
     t.datetime "updated_at", null: false
@@ -80,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_134823) do
     t.index ["twitter_uid"], name: "index_users_on_twitter_uid", unique: true
   end
 
+  add_foreign_key "note_versions", "notes"
   add_foreign_key "notes", "pages"
   add_foreign_key "notes", "users", column: "author_id"
   add_foreign_key "ratings", "notes"

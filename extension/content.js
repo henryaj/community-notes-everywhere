@@ -299,7 +299,7 @@
           <strong>${escapeHtml(note.author.display_name)}</strong>
           <span class="cne-handle-line">
             <a href="https://x.com/${encodeURIComponent(note.author.handle)}" target="_blank" rel="noopener noreferrer" class="cne-handle">@${escapeHtml(note.author.handle)}</a>
-            ${note.author.karma != null ? `<span class="cne-karma">&middot; ${note.author.karma} karma</span>` : ''}
+            ${note.author.karma != null ? `<span class="cne-karma" style="color: ${note.author.karma > 0 ? '#00b450' : note.author.karma < 0 ? '#f4212e' : '#536471'}">&middot; ${note.author.karma} karma</span>` : ''}
           </span>
         </div>
         ${!isOwner && !note.current_user_reported ? `<button class="cne-report-btn" title="Report this note">&#x2691;</button>` : ''}
@@ -308,14 +308,23 @@
       </div>
       <div class="cne-popover-body">
         <p>${linkify(escapeHtml(note.body))}</p>
+        ${note.edited_at ? `<span class="cne-edited-label">edited</span>` : ''}
       </div>
       <div class="cne-popover-status">
         ${formatStatusBadge(note)}
       </div>
-      ${isOwner ? `<div class="cne-owner-actions">
-        <button class="cne-edit-btn">Edit</button>
-        <button class="cne-delete-btn">Delete</button>
-      </div>` : ''}
+      ${isOwner ? (() => {
+        const editWindowEnd = new Date(note.edit_window_closes_at || (new Date(note.created_at).getTime() + 10 * 60 * 1000));
+        const now = new Date();
+        const canEdit = now < editWindowEnd;
+        const minutesLeft = Math.max(0, Math.ceil((editWindowEnd - now) / 60000));
+        return `<div class="cne-owner-actions">
+          ${canEdit
+            ? `<button class="cne-edit-btn">Edit <span class="cne-edit-timer">(${minutesLeft}m left)</span></button>`
+            : `<span class="cne-edit-expired" title="Edit window closed">Edit window closed</span>`}
+          <button class="cne-delete-btn">Delete</button>
+        </div>`;
+      })() : ''}
       ${canRate ? `<div class="cne-popover-footer">
         <span class="cne-rating-label">Is this note helpful? <span class="cne-info-icon">&#x24D8;<span class="cne-info-tooltip"><strong>Consider whether this note:</strong><ul><li>Cites high-quality sources</li><li>Is accurate and up to date</li><li>Provides important context</li><li>Is easy to understand</li><li>Would be useful to people across different viewpoints</li><li>Is neutral and non-inflammatory</li></ul></span></span></span>
         <div class="cne-rating-pills">
@@ -777,6 +786,102 @@
     });
   }
 
+  // ── Sidebar ──
+
+  function createSidebar() {
+    // Don't create duplicate sidebar
+    if (document.querySelector('.cne-sidebar')) return;
+
+    // Toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'cne-sidebar-toggle';
+    toggleBtn.innerHTML = '&#x2630;'; // hamburger icon
+    toggleBtn.title = 'Toggle notes sidebar';
+    document.body.appendChild(toggleBtn);
+
+    // Backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'cne-sidebar-backdrop';
+    document.body.appendChild(backdrop);
+
+    // Sidebar panel
+    const sidebar = document.createElement('div');
+    sidebar.className = 'cne-sidebar';
+    sidebar.innerHTML = `
+      <div class="cne-sidebar-header">
+        <h3>${notes.length} note${notes.length === 1 ? '' : 's'} on this page</h3>
+        <button class="cne-sidebar-close">&times;</button>
+      </div>
+      <ul class="cne-sidebar-list"></ul>
+    `;
+    document.body.appendChild(sidebar);
+
+    function populateSidebar() {
+      const list = sidebar.querySelector('.cne-sidebar-list');
+      list.innerHTML = '';
+
+      const header = sidebar.querySelector('.cne-sidebar-header h3');
+      header.textContent = `${notes.length} note${notes.length === 1 ? '' : 's'} on this page`;
+
+      if (notes.length === 0) {
+        list.innerHTML = '<li class="cne-sidebar-empty">No notes on this page yet.</li>';
+        return;
+      }
+
+      notes.forEach(note => {
+        const li = document.createElement('li');
+        li.className = 'cne-sidebar-item';
+        const bodyPreview = note.body.length > 80 ? note.body.substring(0, 80) + '...' : note.body;
+        const totalRatings = (note.helpful_count || 0) + (note.somewhat_count || 0) + (note.not_helpful_count || 0);
+
+        li.innerHTML = `
+          <div class="cne-sidebar-item-header">
+            <span class="cne-sidebar-status-dot ${note.status}"></span>
+            <span class="cne-sidebar-author">@${escapeHtml(note.author.handle)}</span>
+          </div>
+          <div class="cne-sidebar-body">${escapeHtml(bodyPreview)}</div>
+          <div class="cne-sidebar-ratings">${totalRatings} rating${totalRatings === 1 ? '' : 's'} &middot; ${note.status.replace('_', ' ')}</div>
+        `;
+
+        li.addEventListener('click', () => {
+          const highlight = document.querySelector(`.cne-highlight[data-note-id="${note.id}"]`);
+          if (highlight) {
+            highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => showNotePopover(highlight, note), 400);
+          }
+          closeSidebar();
+        });
+
+        list.appendChild(li);
+      });
+    }
+
+    function openSidebar() {
+      populateSidebar();
+      sidebar.classList.add('cne-sidebar-open');
+      backdrop.classList.add('cne-sidebar-backdrop-visible');
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('cne-sidebar-open');
+      backdrop.classList.remove('cne-sidebar-backdrop-visible');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (sidebar.classList.contains('cne-sidebar-open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+
+    sidebar.querySelector('.cne-sidebar-close').addEventListener('click', closeSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+  }
+
   // Initialize
-  loadNotes().then(() => maybeShowOnboarding());
+  loadNotes().then(() => {
+    maybeShowOnboarding();
+    if (notes.length > 0) createSidebar();
+  });
 })();

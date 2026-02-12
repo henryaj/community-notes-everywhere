@@ -1,23 +1,40 @@
 Rails.application.routes.draw do
-  # Health check
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Pages
   root "pages#home"
   get "/privacy", to: "pages#privacy"
   get "/terms", to: "pages#terms"
+  get "/account", to: "pages#account"
 
-  # OAuth
   get "/auth/x/callback", to: "auth#callback"
   get "/auth/dev", to: "auth#dev"
+  get "/auth/dev/pick", to: "auth#dev_pick"
   get "/auth/failure", to: "auth#failure"
 
-  # API
   namespace :api do
     resources :notes, only: [:index, :create, :update, :destroy] do
       resource :ratings, only: [:create]
       resources :reports, only: [:create]
+      member do
+        get :versions
+      end
     end
     get :me, to: "me#show"
+    namespace :me do
+      resources :notes, only: [:index]
+      resources :ratings, only: [:index]
+    end
+  end
+
+  namespace :admin do
+    root "dashboard#index"
+    resources :reports, only: [:index, :update]
+    resources :notes, only: [:destroy]
+    resources :users, only: [:index] do
+      member do
+        patch :promote
+        patch :demote
+      end
+    end
   end
 end

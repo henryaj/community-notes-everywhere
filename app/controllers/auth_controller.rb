@@ -1,9 +1,60 @@
-class AuthController < ApplicationController
+class AuthController < ActionController::Base
   # GET /auth/x/callback — real OAuth
   def callback
     auth = request.env["omniauth.auth"]
     user = User.find_or_create_from_oauth(auth)
     redirect_to_extension(user)
+  end
+
+  # GET /auth/dev/pick — dev-only user picker
+  def dev_pick
+    raise ActionController::RoutingError, "Not Found" unless Rails.env.development?
+
+    users = User.order(:twitter_handle)
+    role_badge = ->(u) { u.superadmin? ? " [superadmin]" : u.admin? ? " [admin]" : "" }
+
+    rows = users.map do |u|
+      <<~ROW
+        <tr>
+          <td style="padding:8px 12px">
+            <a href="/auth/dev?user=#{u.twitter_handle}" style="color:#1d9bf0;text-decoration:none;font-weight:600">
+              @#{u.twitter_handle}
+            </a>#{role_badge.call(u)}
+          </td>
+          <td style="padding:8px 12px">#{u.display_name}</td>
+          <td style="padding:8px 12px">#{u.reputation_score.round(1)}</td>
+          <td style="padding:8px 12px">#{u.karma.round(0).to_i}</td>
+          <td style="padding:8px 12px">#{u.can_write? ? "Yes" : "No"}</td>
+          <td style="padding:8px 12px">#{u.can_rate? ? "Yes" : "No"}</td>
+        </tr>
+      ROW
+    end.join
+
+    render html: <<~HTML.html_safe
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Dev Login Picker</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #0f1419; }
+          h1 { font-size: 20px; margin-bottom: 4px; }
+          p { color: #536471; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+          th { text-align: left; padding: 8px 12px; border-bottom: 2px solid #cfd9de; color: #536471; font-size: 12px; text-transform: uppercase; }
+          tr:hover { background: #f7f9f9; }
+          td { border-bottom: 1px solid #eff3f4; }
+        </style>
+      </head>
+      <body>
+        <h1>Dev Login Picker</h1>
+        <p>Click a user to log in as them via the extension.</p>
+        <table>
+          <thead><tr><th>Handle</th><th>Name</th><th>Rep</th><th>Karma</th><th>Can write</th><th>Can rate</th></tr></thead>
+          <tbody>#{rows}</tbody>
+        </table>
+      </body>
+      </html>
+    HTML
   end
 
   # GET /auth/dev?user=handle — dev-only login
@@ -37,6 +88,8 @@ class AuthController < ApplicationController
   private
 
   def redirect_to_extension(user)
+    session[:auth_token] = user.auth_token
+
     # Render a page that stores the token and confirms login
     render html: <<~HTML.html_safe
       <!DOCTYPE html>
