@@ -19,7 +19,8 @@ module Api
             somewhat_count: note.somewhat_count,
             not_helpful_count: note.not_helpful_count,
             status: note.status
-          }
+          },
+          transparency: note.transparency_data
         }, status: rating.previously_new_record? ? :created : :ok
       else
         render json: { errors: rating.errors.full_messages }, status: :unprocessable_entity

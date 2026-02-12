@@ -1,0 +1,64 @@
+<div class="max-w-3xl mx-auto px-6 py-12">
+  <div class="bg-gray-50 rounded-lg p-6 mb-8">
+    <div class="flex items-center gap-4 mb-4">
+      <% if @user.avatar_url.present? %>
+        <img src="<%= @user.avatar_url %>" alt="Avatar" class="w-16 h-16 rounded-full" />
+      <% end %>
+      <div>
+        <p class="font-semibold text-xl"><%= @user.display_name %></p>
+        <a href="https://x.com/<%= @user.twitter_handle %>" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700">@<%= @user.twitter_handle %></a>
+        <p class="text-sm text-gray-400 mt-1">Member since <%= @user.created_at.strftime("%b %Y") %></p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm mt-6">
+      <div>
+        <p class="text-gray-500">Reputation</p>
+        <p class="font-semibold text-lg"><%= @user.reputation_score.round(1) %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Karma</p>
+        <p class="font-semibold text-lg"><%= @user.karma.round(0).to_i %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Rating Impact</p>
+        <p class="font-semibold text-lg"><%= @user.rating_impact.round(1) %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Notes Written</p>
+        <p class="font-semibold text-lg"><%= @stats[:total_notes] %></p>
+      </div>
+      <div>
+        <p class="text-gray-500">Rated Helpful</p>
+        <p class="font-semibold text-lg"><%= @stats[:helpful_count] %></p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-4">Notes</h2>
+  <% if @notes.any? %>
+    <%= turbo_frame_tag "notes_page_1" do %>
+      <div class="space-y-4">
+        <% @notes.each do |note| %>
+          <div class="border border-gray-200 rounded-lg p-4">
+            <p class="text-sm text-gray-500 mb-1"><%= note.created_at.strftime("%b %d, %Y") %></p>
+            <p class="mb-2"><%= note.body.truncate(200) %></p>
+            <span class="inline-block text-xs px-2 py-0.5 rounded-full
+              <% if note.helpful? %>bg-green-100 text-green-800
+              <% elsif note.not_helpful? %>bg-red-100 text-red-800
+              <% else %>bg-gray-100 text-gray-600<% end %>">
+              <%= note.status.humanize %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+      <% if @notes.size == 20 %>
+        <%= turbo_frame_tag "notes_page_2", src: profile_notes_path(@user.twitter_handle, page: 2), loading: :lazy do %>
+          <p class="text-center text-gray-400 py-4">Loading more notes...</p>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% else %>
+    <p class="text-gray-500">This user hasn't written any notes yet.</p>
+  <% end %>
+</div>

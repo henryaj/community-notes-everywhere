@@ -13,6 +13,7 @@ module Api
         karma: current_user.karma.round(0).to_i,
         notes_count: current_user.notes.count,
         ratings_count: current_user.ratings.count,
+        rating_impact: current_user.rating_impact.round(2),
         can_rate: current_user.can_rate?,
         can_write: current_user.can_write?
       }

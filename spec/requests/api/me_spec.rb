@@ -13,6 +13,7 @@ RSpec.describe "Api::Me", type: :request do
       expect(json["twitter_handle"]).to eq("testuser")
       expect(json["display_name"]).to eq("Test User")
       expect(json["reputation_score"]).to be_a(Float)
+      expect(json["rating_impact"]).to be_a(Float)
     end
 
     it "returns 401 without auth token" do

@@ -2,7 +2,7 @@ module Api
   class NotesController < ApplicationController
     before_action :authenticate!, only: [:create, :update, :destroy]
     before_action :require_writing_reputation!, only: [:create]
-    before_action :set_note, only: [:update, :destroy, :versions]
+    before_action :set_note, only: [:update, :destroy, :versions, :status_history]
     before_action :authorize_author!, only: [:update, :destroy]
 
     # GET /api/notes?url=URL
@@ -60,6 +60,22 @@ module Api
       render json: versions.map { |v| { id: v.id, previous_body: v.previous_body, created_at: v.created_at.iso8601 } }
     end
 
+    # GET /api/notes/:id/status_history
+    def status_history
+      changes = @note.note_status_changes.order(created_at: :asc)
+      render json: changes.map { |c|
+        {
+          from_status: c.from_status_name,
+          to_status: c.to_status_name,
+          helpful_count: c.helpful_count_at_change,
+          somewhat_count: c.somewhat_count_at_change,
+          not_helpful_count: c.not_helpful_count_at_change,
+          trigger: c.trigger,
+          changed_at: c.created_at.iso8601
+        }
+      }
+    end
+
     # DELETE /api/notes/:id
     def destroy
       @note.destroy!
@@ -108,12 +124,14 @@ module Api
         somewhat_count: note.somewhat_count,
         not_helpful_count: note.not_helpful_count,
         created_at: note.created_at.iso8601,
+        transparency: note.transparency_data,
         author: {
           id: note.author.id,
           handle: note.author.twitter_handle,
           display_name: note.author.display_name,
           avatar_url: note.author.avatar_url,
-          karma: note.author.karma.round(0).to_i
+          karma: note.author.karma.round(0).to_i,
+          profile_url: "/u/#{note.author.twitter_handle}"
         },
         edited_at: note.edited_at&.iso8601,
         edit_window_closes_at: (note.created_at + 10.minutes).iso8601,

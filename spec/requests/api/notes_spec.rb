@@ -18,6 +18,9 @@ RSpec.describe "Api::Notes", type: :request do
       expect(json["notes"].first["body"]).to eq(note.body)
       expect(json["notes"].first["selected_text"]).to eq(note.selected_text)
       expect(json["notes"].first["author"]["handle"]).to eq(note.author.twitter_handle)
+      expect(json["notes"].first["transparency"]).to be_a(Hash)
+      expect(json["notes"].first["transparency"]["positive_count"]).to be_a(Integer)
+      expect(json["notes"].first["author"]["profile_url"]).to start_with("/u/")
     end
 
     it "returns empty notes array when no notes exist for URL" do
@@ -249,6 +252,32 @@ RSpec.describe "Api::Notes", type: :request do
       expect(json.length).to eq(2)
       expect(json.first["previous_body"]).to be_present
       expect(json.first["created_at"]).to be_present
+    end
+  end
+
+  describe "GET /api/notes/:id/status_history" do
+    let(:note) { create(:note, author: user) }
+
+    it "returns status change history" do
+      create(:note_status_change, note: note, from_status: 0, to_status: 1, trigger: "rating")
+
+      get "/api/notes/#{note.id}/status_history"
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json.length).to eq(1)
+      expect(json.first["from_status"]).to eq("pending")
+      expect(json.first["to_status"]).to eq("helpful")
+      expect(json.first["trigger"]).to eq("rating")
+      expect(json.first["changed_at"]).to be_present
+    end
+
+    it "returns empty array when no status changes exist" do
+      get "/api/notes/#{note.id}/status_history"
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json).to eq([])
     end
   end
 

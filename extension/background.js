@@ -73,6 +73,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "GET_STATUS_HISTORY") {
+    fetchStatusHistory(message.noteId).then(sendResponse);
+    return true;
+  }
+
   if (message.type === "GET_ME") {
     fetchMe().then(sendResponse);
     return true;
@@ -119,7 +124,7 @@ async function apiFetch(path, options = {}) {
 async function fetchNotes(url) {
   const response = await apiFetch(`/api/notes?url=${encodeURIComponent(url)}`);
   if (response.error) return response;
-  return { notes: response.notes, canRate: response.can_rate, canWrite: response.can_write };
+  return { notes: response.notes, canRate: response.can_rate, canWrite: response.can_write, apiBase: API_BASE };
 }
 
 async function createNote(note) {
@@ -147,6 +152,10 @@ async function deleteNote(noteId) {
   return apiFetch(`/api/notes/${noteId}`, {
     method: "DELETE",
   });
+}
+
+async function fetchStatusHistory(noteId) {
+  return apiFetch(`/api/notes/${noteId}/status_history`);
 }
 
 async function reportNote(noteId, reason) {

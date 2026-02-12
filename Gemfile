@@ -58,3 +58,5 @@ group :development, :test do
   gem "rspec-rails"
   gem "factory_bot_rails"
 end
+
+gem "turbo-rails", "~> 2.0"

@@ -13,6 +13,7 @@
   let canWrite = false;
   let showAllNotes = false;
   let addNoteButton = null;
+  let apiBase = '';
 
   // ── Anchoring functions (mirrored in anchoring.js for testing) ──
 
@@ -177,6 +178,7 @@
       notes = response.notes;
       canRate = response.canRate || false;
       canWrite = response.canWrite || false;
+      apiBase = response.apiBase || '';
       highlightNotes();
     }
   }
@@ -251,11 +253,11 @@
     const ratingsText = totalRatings === 1 ? '1 rating' : `${totalRatings} ratings`;
 
     if (note.status === 'helpful') {
-      return `<span class="cne-status-badge cne-badge-helpful">&#x2713; Currently rated helpful</span><span class="cne-ratings-count">${ratingsText}</span>`;
+      return `<span class="cne-status-badge cne-badge-helpful">&#x2713; Currently rated helpful</span><span class="cne-ratings-count">${ratingsText}</span><button class="cne-why-btn" title="Why is this note rated this way?">Why?</button>`;
     } else if (note.status === 'not_helpful') {
-      return `<span class="cne-status-badge cne-badge-not-helpful">&#x2717; Currently not rated helpful</span><span class="cne-ratings-count">${ratingsText}</span>`;
+      return `<span class="cne-status-badge cne-badge-not-helpful">&#x2717; Currently not rated helpful</span><span class="cne-ratings-count">${ratingsText}</span><button class="cne-why-btn" title="Why is this note rated this way?">Why?</button>`;
     } else {
-      return `<span class="cne-status-badge cne-badge-pending">&#x25CB; Needs more ratings</span><span class="cne-ratings-count">${ratingsText}</span>`;
+      return `<span class="cne-status-badge cne-badge-pending">&#x25CB; Needs more ratings</span><span class="cne-ratings-count">${ratingsText}</span><button class="cne-why-btn" title="Why is this note rated this way?">Why?</button>`;
     }
   }
 
@@ -296,7 +298,7 @@
     popover.innerHTML = `
       <div class="cne-popover-header">
         <div class="cne-author-info">
-          <strong>${escapeHtml(note.author.display_name)}</strong>
+          <a href="${apiBase}${note.author.profile_url || '/u/' + encodeURIComponent(note.author.handle)}" target="_blank" rel="noopener noreferrer" class="cne-profile-link"><strong>${escapeHtml(note.author.display_name)}</strong></a>
           <span class="cne-handle-line">
             <a href="https://x.com/${encodeURIComponent(note.author.handle)}" target="_blank" rel="noopener noreferrer" class="cne-handle">@${escapeHtml(note.author.handle)}</a>
             ${note.author.karma != null ? `<span class="cne-karma" style="color: ${note.author.karma > 0 ? '#00b450' : note.author.karma < 0 ? '#f4212e' : '#536471'}">&middot; ${note.author.karma} karma</span>` : ''}
@@ -342,6 +344,48 @@
     popover.dataset.placement = position.placement;
 
     document.body.appendChild(popover);
+
+    // Add transparency panel after status section
+    const statusEl = popover.querySelector('.cne-popover-status');
+    if (statusEl) {
+      statusEl.insertAdjacentHTML('afterend', buildTransparencyPanel(note));
+    }
+
+    // Wire up Why button
+    const whyBtn = popover.querySelector('.cne-why-btn');
+    if (whyBtn) {
+      whyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const panel = popover.querySelector('.cne-transparency');
+        if (panel) {
+          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+      });
+    }
+
+    // Wire up status history link
+    const historyLink = popover.querySelector('.cne-history-link');
+    if (historyLink) {
+      historyLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const timelineEl = popover.querySelector('.cne-status-timeline');
+        if (timelineEl.children.length > 0) {
+          timelineEl.style.display = timelineEl.style.display === 'none' ? 'block' : 'none';
+          return;
+        }
+        historyLink.textContent = 'Loading...';
+        const changes = await chrome.runtime.sendMessage({ type: 'GET_STATUS_HISTORY', noteId: note.id });
+        historyLink.textContent = 'View status history';
+        if (Array.isArray(changes) && changes.length > 0) {
+          timelineEl.innerHTML = buildStatusTimeline(changes);
+          timelineEl.style.display = 'block';
+        } else {
+          timelineEl.innerHTML = '<p class="cne-timeline-empty">No status changes yet.</p>';
+          timelineEl.style.display = 'block';
+        }
+      });
+    }
 
     // Clamp vertical overflow for side-positioned popovers
     if (position.placement !== "below") {
@@ -528,6 +572,29 @@
             note.not_helpful_count = result.note.not_helpful_count;
             note.current_user_rating = helpfulness;
             statusEl.innerHTML = formatStatusBadge(note);
+          }
+
+          // Refresh transparency panel if data available
+          if (result.transparency) {
+            note.transparency = result.transparency;
+            const oldPanel = popover.querySelector('.cne-transparency');
+            if (oldPanel) {
+              const wasVisible = oldPanel.style.display !== 'none';
+              const statusEl2 = popover.querySelector('.cne-popover-status');
+              oldPanel.remove();
+              statusEl2.insertAdjacentHTML('afterend', buildTransparencyPanel(note));
+              const newPanel = popover.querySelector('.cne-transparency');
+              if (newPanel && wasVisible) newPanel.style.display = 'block';
+              // Re-wire why button
+              const whyBtn2 = popover.querySelector('.cne-why-btn');
+              if (whyBtn2) {
+                whyBtn2.addEventListener('click', (ev) => {
+                  ev.stopPropagation();
+                  const p = popover.querySelector('.cne-transparency');
+                  if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+                });
+              }
+            }
           }
         }
       });
@@ -741,6 +808,94 @@
           alert(errorMsg);
         }
       });
+  }
+
+  function buildTransparencyPanel(note) {
+    const t = note.transparency;
+    if (!t) return '';
+
+    let explanation = '';
+    if (note.status === 'helpful') {
+      explanation = 'This note is rated helpful because it received enough positive ratings with a strong consensus.';
+    } else if (note.status === 'not_helpful') {
+      explanation = 'This note is rated not helpful because it received enough negative ratings with a strong consensus.';
+    } else {
+      explanation = 'This note needs more ratings before a status can be determined.';
+    }
+
+    return `
+      <div class="cne-transparency" style="display:none;">
+        <p class="cne-transparency-explanation">${explanation}</p>
+        <div class="cne-transparency-section">
+          <div class="cne-threshold-item">
+            <span class="${t.meets_positive_threshold ? 'cne-threshold-check' : 'cne-threshold-cross'}">${t.meets_positive_threshold ? '&#x2713;' : '&#x2717;'}</span>
+            <span>3+ positive ratings (${t.positive_progress}/3)</span>
+            <div class="cne-progress-bar"><div class="cne-progress-fill cne-progress-green" style="width:${(t.positive_progress / 3) * 100}%"></div></div>
+          </div>
+          <div class="cne-threshold-item">
+            <span class="${t.meets_helpful_ratio ? 'cne-threshold-check' : 'cne-threshold-cross'}">${t.meets_helpful_ratio ? '&#x2713;' : '&#x2717;'}</span>
+            <span>2:1 positive-to-negative ratio</span>
+          </div>
+          <div class="cne-threshold-item">
+            <span class="${t.meets_not_helpful_threshold ? 'cne-threshold-check' : 'cne-threshold-cross'}">${t.meets_not_helpful_threshold ? '&#x2713;' : '&#x2717;'}</span>
+            <span>3+ negative ratings (${t.negative_progress}/3)</span>
+            <div class="cne-progress-bar"><div class="cne-progress-fill cne-progress-red" style="width:${(t.negative_progress / 3) * 100}%"></div></div>
+          </div>
+          <div class="cne-threshold-item">
+            <span class="${t.meets_not_helpful_ratio ? 'cne-threshold-check' : 'cne-threshold-cross'}">${t.meets_not_helpful_ratio ? '&#x2713;' : '&#x2717;'}</span>
+            <span>2:1 negative-to-positive ratio</span>
+          </div>
+        </div>
+        <div class="cne-transparency-counts">
+          Positive: ${t.positive_count} &middot; Negative: ${note.not_helpful_count || 0} &middot; Total: ${t.total_ratings}
+        </div>
+        <a href="#" class="cne-history-link">View status history</a>
+        <div class="cne-status-timeline" style="display:none;"></div>
+      </div>
+    `;
+  }
+
+  function buildStatusTimeline(changes) {
+    return changes.map((c, i) => `
+      <div class="cne-timeline-item">
+        <div class="cne-timeline-dot"></div>
+        <div class="cne-timeline-content">
+          <span>${statusMiniLabel(c.from_status)}</span>
+          <span class="cne-timeline-arrow">&rarr;</span>
+          <span>${statusMiniLabel(c.to_status)}</span>
+          <span class="cne-timeline-meta">
+            ${c.helpful_count}&#x2191; ${c.somewhat_count}&#x2194; ${c.not_helpful_count}&#x2193;
+            &middot; ${c.trigger}
+            &middot; ${formatTimeAgo(c.changed_at)}
+          </span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function statusMiniLabel(status) {
+    const labels = {
+      pending: ['Pending', 'cne-mini-pending'],
+      helpful: ['Helpful', 'cne-mini-helpful'],
+      not_helpful: ['Not Helpful', 'cne-mini-not-helpful']
+    };
+    const [text, cls] = labels[status] || ['Unknown', 'cne-mini-pending'];
+    return `<span class="cne-mini-badge ${cls}">${text}</span>`;
+  }
+
+  function formatTimeAgo(dateStr) {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
   }
 
   function escapeHtml(str) {
