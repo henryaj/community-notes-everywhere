@@ -501,12 +501,12 @@ a.cne-handle:hover {
   cursor: not-allowed;
 }
 
-.cne-form-guidance {
-  padding: 10px 14px;
-  font-size: 13px;
-  line-height: 1.4;
-  color: #536471;
-  border-bottom: 1px solid #eff3f4;
+.cne-form-header .cne-info-icon {
+  margin-left: 4px;
+}
+
+.cne-form-header .cne-close {
+  margin-left: auto;
 }
 
 /* Links in note bodies */

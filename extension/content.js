@@ -758,11 +758,8 @@
     form.innerHTML = `
       <div class="cne-form-header">
         <strong>Add Community Note</strong>
+        <span class="cne-info-icon">&#x24D8;<span class="cne-info-tooltip"><strong>Tips for writing a good note:</strong><ul><li>Cite high-quality, trustworthy sources</li><li>Be accurate, specific, and up to date</li><li>Provide important context others may be missing</li><li>Write clearly and concisely</li><li>Be neutral and non-inflammatory</li><li>Consider whether people across different viewpoints would find it useful</li></ul></span></span>
         <button class="cne-close">&times;</button>
-      </div>
-      <div class="cne-form-guidance">
-        Write a note with context that you believe should be shown with the post to keep others informed.
-        Be precise — providing links to outside sources is required.
       </div>
       <textarea class="cne-form-textarea" placeholder="Add context and link to trustworthy sources..." rows="4"></textarea>
       <div class="cne-source-check">
