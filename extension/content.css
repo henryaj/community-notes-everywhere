@@ -461,6 +461,49 @@ a.cne-handle:hover {
   box-shadow: 0 0 0 1px #1d9bf0;
 }
 
+/* Discard confirmation bar */
+.cne-confirm-discard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+  font-size: 13px;
+  color: #991b1b;
+}
+
+.cne-discard-yes {
+  background: #f4212e;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cne-discard-yes:hover {
+  background: #dc1d28;
+}
+
+.cne-discard-no {
+  background: none;
+  border: 1px solid #cfd9de;
+  border-radius: 12px;
+  padding: 3px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #536471;
+  font-family: inherit;
+}
+
+.cne-discard-no:hover {
+  background: #eff3f4;
+}
+
 .cne-form-actions {
   display: flex;
   justify-content: flex-end;

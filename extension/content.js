@@ -408,6 +408,8 @@
       }
     }
 
+    trackScrollPosition(popover, () => anchor.getBoundingClientRect());
+
     popover
       .querySelector(".cne-close")
       .addEventListener("click", () => dismissPopover(popover));
@@ -785,12 +787,35 @@
       </div>
     `;
 
-    const formPosition = computePopoverPosition(rect);
+    // Insert an invisible anchor marker at the selection position for scroll tracking
+    const marker = document.createElement("span");
+    marker.className = "cne-form-marker";
+    marker.style.cssText = "display:inline;width:0;height:0;overflow:hidden;position:relative;";
+    try {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const r = sel.getRangeAt(0);
+        r.collapse(false);
+        r.insertNode(marker);
+      }
+    } catch { /* selection may be gone */ }
+
+    const getFormAnchorRect = () => {
+      if (marker.isConnected) return marker.getBoundingClientRect();
+      return rect;
+    };
+
+    const formPosition = computePopoverPosition(getFormAnchorRect());
     form.style.top = `${formPosition.top}px`;
     form.style.left = `${formPosition.left}px`;
     form.dataset.placement = formPosition.placement;
 
     document.body.appendChild(form);
+    trackScrollPosition(form, getFormAnchorRect);
+
+    // Clean up marker when form is removed
+    const origRemove = form.remove.bind(form);
+    form.remove = () => { if (marker.isConnected) marker.remove(); origRemove(); };
 
     const textarea = form.querySelector(".cne-form-textarea");
     textarea.addEventListener("input", () => autoResizeTextarea(textarea));
@@ -869,12 +894,34 @@
       });
     }
 
+    function confirmClose() {
+      if (textarea.value.trim()) {
+        let bar = form.querySelector(".cne-confirm-discard");
+        if (bar) return; // already showing
+        bar = document.createElement("div");
+        bar.className = "cne-confirm-discard";
+        bar.innerHTML = `
+          <span>Discard your note?</span>
+          <button class="cne-discard-yes" type="button">Discard</button>
+          <button class="cne-discard-no" type="button">Keep editing</button>
+        `;
+        form.querySelector(".cne-form-actions").before(bar);
+        bar.querySelector(".cne-discard-yes").addEventListener("click", () => form.remove());
+        bar.querySelector(".cne-discard-no").addEventListener("click", () => {
+          bar.remove();
+          textarea.focus();
+        });
+      } else {
+        form.remove();
+      }
+    }
+
     form
       .querySelector(".cne-close")
-      .addEventListener("click", () => form.remove());
+      .addEventListener("click", confirmClose);
     form
       .querySelector(".cne-form-cancel")
-      .addEventListener("click", () => form.remove());
+      .addEventListener("click", confirmClose);
 
     form
       .querySelector(".cne-form-submit")
@@ -1014,6 +1061,21 @@
     if (days < 30) return `${days}d ago`;
     const months = Math.floor(days / 30);
     return `${months}mo ago`;
+  }
+
+  function trackScrollPosition(el, getAnchorRect) {
+    function reposition() {
+      if (!el.isConnected) {
+        window.removeEventListener("scroll", reposition, true);
+        return;
+      }
+      const rect = getAnchorRect();
+      const pos = computePopoverPosition(rect);
+      el.style.top = `${pos.top}px`;
+      el.style.left = `${pos.left}px`;
+      el.dataset.placement = pos.placement;
+    }
+    window.addEventListener("scroll", reposition, true);
   }
 
   function autoResizeTextarea(el) {
