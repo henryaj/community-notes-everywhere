@@ -29,7 +29,7 @@ Rails.application.routes.draw do
   namespace :admin do
     root "dashboard#index"
     resources :reports, only: [:index, :update]
-    resources :notes, only: [:destroy]
+    resources :notes, only: [:index, :destroy]
     resources :users, only: [:index] do
       member do
         patch :promote
