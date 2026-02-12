@@ -1,0 +1,5 @@
+# Copy extension node_modules from main worktree (faster than npm install)
+post-create = "cp -a {{ repo_path }}/extension/node_modules {{ worktree_path }}/extension/node_modules 2>/dev/null || true"
+
+# Lint before merging
+pre-merge = "bin/rubocop"
