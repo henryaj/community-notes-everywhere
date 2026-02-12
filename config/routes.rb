@@ -23,6 +23,9 @@ Rails.application.routes.draw do
         get :status_history
       end
     end
+    namespace :ai_notes do
+      post :draft
+    end
     get :me, to: "me#show"
     namespace :me do
       resources :notes, only: [ :index ]
