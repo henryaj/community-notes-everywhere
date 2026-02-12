@@ -1,6 +1,28 @@
 require "rails_helper"
 
 RSpec.describe Note, type: :model do
+  describe "#generate_short_id" do
+    it "generates an 8-character short_id on create" do
+      note = create(:note)
+      expect(note.short_id).to be_present
+      expect(note.short_id.length).to eq(8)
+      expect(note.short_id).to match(/\A[a-zA-Z0-9]+\z/)
+    end
+
+    it "generates unique short_ids" do
+      notes = Array.new(10) { create(:note) }
+      short_ids = notes.map(&:short_id)
+      expect(short_ids.uniq.length).to eq(10)
+    end
+  end
+
+  describe "#short_url" do
+    it "returns the short URL path" do
+      note = create(:note)
+      expect(note.short_url).to eq("/n/#{note.short_id}")
+    end
+  end
+
   describe "#transparency_data" do
     it "returns transparency metrics" do
       note = build(:note, helpful_count: 4, somewhat_count: 1, not_helpful_count: 1)

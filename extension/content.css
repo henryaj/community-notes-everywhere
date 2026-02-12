@@ -659,6 +659,31 @@ a.cne-handle:hover {
   cursor: not-allowed;
 }
 
+/* Share button */
+.cne-share-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #536471;
+  padding: 4px 8px;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.cne-share-btn:hover {
+  background: #e8f5fd;
+  color: #1d9bf0;
+}
+
+.cne-copied-label {
+  font-size: 12px;
+  color: #00b450;
+  font-weight: 600;
+  padding: 4px 8px;
+  animation: cne-fade-in 0.15s ease-out;
+}
+
 /* Report button and dropdown */
 .cne-report-btn {
   background: none;

@@ -21,6 +21,7 @@ RSpec.describe "Api::Notes", type: :request do
       expect(json["notes"].first["transparency"]).to be_a(Hash)
       expect(json["notes"].first["transparency"]["positive_count"]).to be_a(Integer)
       expect(json["notes"].first["author"]["profile_url"]).to start_with("/u/")
+      expect(json["notes"].first["short_url"]).to start_with("/n/")
     end
 
     it "returns empty notes array when no notes exist for URL" do

@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   get "/privacy", to: "pages#privacy"
   get "/terms", to: "pages#terms"
   get "/account", to: "pages#account"
+  get "/n/:short_id", to: "notes_redirect#show", as: :short_note
   get "/u/:twitter_handle", to: "profiles#show", as: :profile
   get "/u/:twitter_handle/notes", to: "profiles#notes", as: :profile_notes
 

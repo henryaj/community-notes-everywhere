@@ -1,0 +1,49 @@
+<div class="max-w-3xl mx-auto px-6 py-12">
+  <div class="bg-gray-50 rounded-lg p-6 mb-6">
+    <div class="flex items-center gap-3 mb-4">
+      <% if @note.author.avatar_url.present? %>
+        <img src="<%= @note.author.avatar_url %>" alt="Avatar" class="w-10 h-10 rounded-full" />
+      <% end %>
+      <div>
+        <a href="<%= profile_path(@note.author.twitter_handle) %>" class="font-semibold text-gray-900 hover:underline"><%= @note.author.display_name %></a>
+        <a href="https://x.com/<%= @note.author.twitter_handle %>" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 block">@<%= @note.author.twitter_handle %></a>
+      </div>
+    </div>
+
+    <% if @note.selected_text.present? %>
+      <blockquote class="border-l-4 border-gray-300 pl-4 py-2 mb-4 text-gray-600 italic text-sm">
+        &ldquo;<%= @note.selected_text.truncate(300) %>&rdquo;
+      </blockquote>
+    <% end %>
+
+    <p class="text-gray-900 leading-relaxed mb-4"><%= @note.body %></p>
+
+    <div class="flex items-center gap-3 mb-4">
+      <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full
+        <% if @note.helpful? %>bg-green-100 text-green-800
+        <% elsif @note.not_helpful? %>bg-red-100 text-red-800
+        <% else %>bg-yellow-100 text-yellow-800<% end %>">
+        <% if @note.helpful? %>&#x2713; Rated helpful
+        <% elsif @note.not_helpful? %>&#x2717; Not rated helpful
+        <% else %>&#x25CB; Needs more ratings<% end %>
+      </span>
+      <span class="text-xs text-gray-500">
+        <%= @note.helpful_count + @note.somewhat_count + @note.not_helpful_count %> ratings
+      </span>
+    </div>
+
+    <p class="text-xs text-gray-400">On <strong><%= @note.page.domain %></strong> &middot; <%= @note.created_at.strftime("%b %d, %Y") %></p>
+  </div>
+
+  <a href="<%= @note.page.url %>#cne-note=<%= @note.id %>"
+     class="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition mb-8">
+    View on page &rarr;
+  </a>
+
+  <div class="border border-gray-200 rounded-lg p-5 text-sm text-gray-600">
+    <p class="font-semibold text-gray-900 mb-2">See notes on any page</p>
+    <p class="mb-3">Install the Community Notes Everywhere extension to see community-written context notes across the web.</p>
+    <a href="https://chromewebstore.google.com" target="_blank" rel="noopener noreferrer"
+       class="text-blue-500 hover:text-blue-600 font-medium">Get the Chrome extension &rarr;</a>
+  </div>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_150135) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_162413) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -44,6 +44,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_150135) do
     t.bigint "page_id", null: false
     t.integer "reports_count", default: 0, null: false
     t.text "selected_text", null: false
+    t.string "short_id", limit: 8
     t.integer "somewhat_count", default: 0, null: false
     t.boolean "sources_linked"
     t.integer "status", default: 0, null: false
@@ -52,6 +53,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_150135) do
     t.datetime "updated_at", null: false
     t.index ["author_id"], name: "index_notes_on_author_id"
     t.index ["page_id"], name: "index_notes_on_page_id"
+    t.index ["short_id"], name: "index_notes_on_short_id", unique: true
   end
 
   create_table "pages", force: :cascade do |t|

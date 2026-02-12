@@ -8,8 +8,11 @@ class Note < ApplicationRecord
 
   enum :status, { pending: 0, helpful: 1, not_helpful: 2 }
 
+  before_create :generate_short_id
+
   validates :body, presence: true
   validates :selected_text, presence: true
+  validates :short_id, uniqueness: true, presence: true, on: :update
 
   def hidden?
     reports_count >= 3
@@ -43,6 +46,10 @@ class Note < ApplicationRecord
     )
   end
 
+  def short_url
+    "/n/#{short_id}"
+  end
+
   def update_status!
     positive_count = helpful_count + somewhat_count
     if positive_count >= 3 && positive_count > not_helpful_count * 2
@@ -59,6 +66,15 @@ class Note < ApplicationRecord
         r.user.recalculate_reputation!
         r.user.recalculate_rating_impact!
       end
+    end
+  end
+
+  private
+
+  def generate_short_id
+    loop do
+      self.short_id = SecureRandom.alphanumeric(8)
+      break unless Note.exists?(short_id: short_id)
     end
   end
 end

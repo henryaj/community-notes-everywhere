@@ -133,6 +133,7 @@ module Api
           karma: note.author.karma.round(0).to_i,
           profile_url: "/u/#{note.author.twitter_handle}"
         },
+        short_url: note.short_url,
         edited_at: note.edited_at&.iso8601,
         edit_window_closes_at: (note.created_at + 10.minutes).iso8601,
         current_user_rating: user_rating&.helpfulness,

@@ -312,6 +312,7 @@
             ${note.author.karma != null ? `<span class="cne-karma" style="color: ${note.author.karma > 0 ? '#00b450' : note.author.karma < 0 ? '#f4212e' : '#536471'}">&middot; ${note.author.karma} karma</span>` : ''}
           </span>
         </div>
+        ${note.short_url ? `<button class="cne-share-btn" title="Copy link to note">&#x1F517;</button>` : ''}
         ${!isOwner && !note.current_user_reported ? `<button class="cne-report-btn" title="Report this note">&#x2691;</button>` : ''}
         ${!isOwner && note.current_user_reported ? `<span class="cne-reported-label">Reported</span>` : ''}
         <button class="cne-close">&times;</button>
@@ -407,6 +408,26 @@
     popover
       .querySelector(".cne-close")
       .addEventListener("click", () => dismissPopover(popover));
+
+    // ── Share button handler ──
+    const shareBtn = popover.querySelector(".cne-share-btn");
+    if (shareBtn) {
+      shareBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const shortUrl = `${apiBase}${note.short_url}`;
+        try {
+          await navigator.clipboard.writeText(shortUrl);
+          const label = document.createElement("span");
+          label.className = "cne-copied-label";
+          label.textContent = "Copied!";
+          shareBtn.after(label);
+          setTimeout(() => label.remove(), 1500);
+        } catch {
+          // Fallback for contexts where clipboard API is unavailable
+          prompt("Copy this link:", shortUrl);
+        }
+      });
+    }
 
     // ── Edit button handler ──
     const editBtn = popover.querySelector(".cne-edit-btn");
@@ -1043,9 +1064,27 @@
     backdrop.addEventListener('click', closeSidebar);
   }
 
+  function handleDeeplink() {
+    const hashMatch = window.location.hash.match(/cne-note=(\d+)/);
+    if (!hashMatch) return;
+
+    const noteId = parseInt(hashMatch[1]);
+    const note = notes.find(n => n.id === noteId);
+    if (note) {
+      const highlight = document.querySelector(`.cne-highlight[data-note-id="${noteId}"]`);
+      if (highlight) {
+        highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => showNotePopover(highlight, note), 500);
+      }
+    }
+    // Clean up hash without triggering navigation
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+
   // Initialize
   loadNotes().then(() => {
     maybeShowOnboarding();
     if (notes.length > 0) createSidebar();
+    handleDeeplink();
   });
 })();
