@@ -93,11 +93,80 @@ class AuthController < ActionController::Base
     # Render a page that stores the token and confirms login
     render html: <<~HTML.html_safe
       <!DOCTYPE html>
-      <html>
-      <head><title>Login Successful</title></head>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login Successful — Community Notes Everywhere</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f7f9f9;
+            color: #0f1419;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+          }
+          .card {
+            background: #fff;
+            border: 1px solid #e1e8ed;
+            border-radius: 16px;
+            padding: 48px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          }
+          .checkmark {
+            width: 56px;
+            height: 56px;
+            background: #00ba7c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+          }
+          .checkmark svg { width: 28px; height: 28px; }
+          h1 { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+          .handle { color: #536471; font-size: 15px; margin: 0 0 24px; }
+          .avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: block;
+          }
+          .hint {
+            color: #536471;
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.5;
+          }
+          .brand {
+            color: #536471;
+            font-size: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #eff3f4;
+          }
+        </style>
+      </head>
       <body>
-        <h1>Login successful!</h1>
-        <p id="status">Sending credentials to extension...</p>
+        <div class="card">
+          <div class="checkmark">
+            <svg fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <img src="#{user.avatar_url}" alt="" class="avatar">
+          <h1>You're logged in</h1>
+          <p class="handle">@#{user.twitter_handle}</p>
+          <p class="hint" id="status">You can close this tab and return to the extension.</p>
+          <p class="brand">Community Notes Everywhere</p>
+        </div>
         <script>
           const token = "#{user.auth_token}";
           const userData = {
@@ -111,9 +180,6 @@ class AuthController < ActionController::Base
           // and reads the token from the hash fragment
           const hashData = encodeURIComponent(JSON.stringify({ token, user: userData }));
           window.location.hash = "cne_auth=" + hashData;
-
-          document.getElementById("status").textContent =
-            "Logged in as @#{user.twitter_handle}. You can close this tab.";
         </script>
       </body>
       </html>
