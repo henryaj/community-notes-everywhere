@@ -16,7 +16,8 @@ module Api
       render json: {
         notes: notes.map { |note| serialize_note(note) },
         can_rate: current_user&.can_rate? || false,
-        can_write: current_user&.can_write? || false
+        can_write: current_user&.can_write? || false,
+        can_request_ai_notes: current_user&.can_request_ai_notes? || false
       }
     end
 
@@ -30,7 +31,9 @@ module Api
         text_prefix: note_params[:text_prefix],
         text_suffix: note_params[:text_suffix],
         css_selector: note_params[:css_selector],
-        sources_linked: note_params[:sources_linked]
+        sources_linked: note_params[:sources_linked],
+        ai_generated: note_params[:ai_generated] || false,
+        ai_model: note_params[:ai_model]
       )
 
       if note.save
@@ -101,7 +104,7 @@ module Api
     end
 
     def note_params
-      params.require(:note).permit(:url, :body, :selected_text, :text_prefix, :text_suffix, :css_selector, :sources_linked)
+      params.require(:note).permit(:url, :body, :selected_text, :text_prefix, :text_suffix, :css_selector, :sources_linked, :ai_generated, :ai_model)
     end
 
     def update_note_params
@@ -134,6 +137,8 @@ module Api
           profile_url: "/u/#{note.author.twitter_handle}"
         },
         short_url: note.short_url,
+        ai_generated: note.ai_generated,
+        ai_model: note.ai_model,
         edited_at: note.edited_at&.iso8601,
         edit_window_closes_at: (note.created_at + 10.minutes).iso8601,
         current_user_rating: user_rating&.helpfulness,
