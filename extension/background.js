@@ -1,5 +1,4 @@
-// Set to "http://localhost:3000" for local development
-const API_BASE = "https://notes.blmc.dev";
+importScripts("config.js");
 
 // Watch for auth callback tabs — grab the token from the URL hash
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -68,6 +67,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "GENERATE_AI_DRAFT") {
+    generateAiDraft(message.selectedText, message.url, message.surroundingText).then(sendResponse);
+    return true;
+  }
+
   if (message.type === "GET_STATUS_HISTORY") {
     fetchStatusHistory(message.noteId).then(sendResponse);
     return true;
@@ -119,7 +123,7 @@ async function apiFetch(path, options = {}) {
 async function fetchNotes(url) {
   const response = await apiFetch(`/api/notes?url=${encodeURIComponent(url)}`);
   if (response.error) return response;
-  return { notes: response.notes, canRate: response.can_rate, canWrite: response.can_write, apiBase: API_BASE };
+  return { notes: response.notes, canRate: response.can_rate, canWrite: response.can_write, canRequestAiNotes: response.can_request_ai_notes, apiBase: API_BASE };
 }
 
 async function createNote(note) {
@@ -157,6 +161,17 @@ async function reportNote(noteId, reason) {
   return apiFetch(`/api/notes/${noteId}/reports`, {
     method: "POST",
     body: JSON.stringify({ report: { reason } }),
+  });
+}
+
+async function generateAiDraft(selectedText, url, surroundingText) {
+  return apiFetch("/api/ai_notes/draft", {
+    method: "POST",
+    body: JSON.stringify({
+      selected_text: selectedText,
+      page_url: url,
+      surrounding_text: surroundingText,
+    }),
   });
 }
 

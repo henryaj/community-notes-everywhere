@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Builds the Chrome extension for dev or prod (or both).
+# Usage: bin/build-extension [dev|prod|all]
+#
+# Outputs to dist/dev/ and/or dist/prod/.
+# Load the desired directory as an unpacked extension in Chrome.
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SRC="$ROOT/extension"
+
+build() {
+  local env="$1"
+  local dist="$ROOT/dist/$env"
+
+  rm -rf "$dist"
+  mkdir -p "$dist"
+
+  # Copy extension source files (skip node_modules, tests, vitest config)
+  for f in manifest.json background.js content.js content.css popup.html popup.js anchoring.js; do
+    [ -f "$SRC/$f" ] && cp "$SRC/$f" "$dist/"
+  done
+  cp -r "$SRC/icons" "$dist/"
+
+  # Write environment-specific config
+  if [ "$env" = "dev" ]; then
+    cat > "$dist/config.js" <<'CONF'
+const API_BASE = "http://localhost:3000";
+CONF
+    # Rename extension so both can be loaded side-by-side
+    sed -i '' 's/"Community Notes Everywhere"/"Community Notes Everywhere (Dev)"/' "$dist/manifest.json"
+  else
+    cat > "$dist/config.js" <<'CONF'
+const API_BASE = "https://notes.blmc.dev";
+CONF
+  fi
+
+  echo "Built $env extension → dist/$env/"
+}
+
+target="${1:-all}"
+
+case "$target" in
+  dev)  build dev ;;
+  prod) build prod ;;
+  all)  build dev; build prod ;;
+  *)    echo "Usage: bin/build-extension [dev|prod|all]"; exit 1 ;;
+esac

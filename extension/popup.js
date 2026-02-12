@@ -1,6 +1,3 @@
-// Set to "http://localhost:3000" for local development
-const API_BASE = "https://notes.blmc.dev";
-
 document.addEventListener("DOMContentLoaded", async () => {
   const loginSection = document.getElementById("login-section");
   const profileSection = document.getElementById("profile-section");

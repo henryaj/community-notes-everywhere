@@ -21,6 +21,9 @@ config/credentials/*.key
 !.env.example
 /.kamal/secrets
 
+# Extension build output
+dist/
+
 # Node
 node_modules/
 
