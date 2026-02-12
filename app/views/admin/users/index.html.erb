@@ -1,0 +1,51 @@
+<div class="max-w-5xl mx-auto px-6 py-12">
+  <a href="/admin" class="text-blue-600 hover:underline text-sm">&larr; Back to Dashboard</a>
+  <h1 class="text-2xl font-bold mt-4 mb-8">Manage Users</h1>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 text-left text-gray-500">
+          <th class="pb-2 pr-4">Handle</th>
+          <th class="pb-2 pr-4">Display Name</th>
+          <th class="pb-2 pr-4">Role</th>
+          <th class="pb-2 pr-4">Reputation</th>
+          <th class="pb-2 pr-4">Karma</th>
+          <th class="pb-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr class="border-b border-gray-100">
+            <td class="py-2 pr-4">@<%= user.twitter_handle %></td>
+            <td class="py-2 pr-4"><%= user.display_name %></td>
+            <td class="py-2 pr-4">
+              <% if user.superadmin? %>
+                <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800">superadmin</span>
+              <% elsif user.admin? %>
+                <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">admin</span>
+              <% else %>
+                <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">user</span>
+              <% end %>
+            </td>
+            <td class="py-2 pr-4"><%= user.reputation_score.round(0).to_i %></td>
+            <td class="py-2 pr-4"><%= user.karma.round(0).to_i %></td>
+            <td class="py-2">
+              <% unless user.superadmin? %>
+                <% if user.user? %>
+                  <%= form_with url: promote_admin_user_path(user), method: :patch, local: true, class: "inline" do %>
+                    <button type="submit" class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200">Promote</button>
+                  <% end %>
+                <% elsif user.admin? %>
+                  <%= form_with url: demote_admin_user_path(user), method: :patch, local: true, class: "inline" do %>
+                    <button type="submit" class="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Demote</button>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
