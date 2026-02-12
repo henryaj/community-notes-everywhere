@@ -1,9 +1,9 @@
 module Api
   class NotesController < ApplicationController
-    before_action :authenticate!, only: [:create, :update, :destroy]
-    before_action :require_writing_reputation!, only: [:create]
-    before_action :set_note, only: [:update, :destroy, :versions, :status_history]
-    before_action :authorize_author!, only: [:update, :destroy]
+    before_action :authenticate!, only: [ :create, :update, :destroy ]
+    before_action :require_writing_reputation!, only: [ :create ]
+    before_action :set_note, only: [ :update, :destroy, :versions, :status_history ]
+    before_action :authorize_author!, only: [ :update, :destroy ]
 
     # GET /api/notes?url=URL
     def index

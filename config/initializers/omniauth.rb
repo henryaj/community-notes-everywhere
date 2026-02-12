@@ -6,5 +6,5 @@ Rails.application.config.middleware.use OmniAuth::Builder do
     scope: "tweet.read users.read"
 end
 
-OmniAuth.config.allowed_request_methods = [:get, :post]
+OmniAuth.config.allowed_request_methods = [ :get, :post ]
 OmniAuth.config.silence_get_warning = true

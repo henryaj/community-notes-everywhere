@@ -39,18 +39,18 @@ class User < ApplicationRecord
     # Account age bonus (up to 20 points for accounts > 5 years old)
     if account_created_at
       years_old = (Time.current - account_created_at) / 1.year
-      score += [years_old * 4, 20].min
+      score += [ years_old * 4, 20 ].min
     end
 
     # Follower count bonus (logarithmic, up to 30 points)
     if follower_count && follower_count > 0
-      score += [Math.log10(follower_count) * 10, 30].min
+      score += [ Math.log10(follower_count) * 10, 30 ].min
     end
 
     # Rating accuracy bonus (up to 50 points)
     decided_yes_no = ratings.joins(:note)
-      .where(notes: { status: [:helpful, :not_helpful] })
-      .where(helpfulness: [:yes, :no])
+      .where(notes: { status: [ :helpful, :not_helpful ] })
+      .where(helpfulness: [ :yes, :no ])
     total_decided = decided_yes_no.count
     if total_decided > 0
       accurate_count = decided_yes_no
@@ -78,7 +78,7 @@ class User < ApplicationRecord
   def recalculate_rating_impact!
     # Notes rated by this user that reached a decided status
     decided_note_ids = ratings.joins(:note)
-      .where(notes: { status: [:helpful, :not_helpful] })
+      .where(notes: { status: [ :helpful, :not_helpful ] })
       .pluck(:note_id)
 
     consensus_count = decided_note_ids.size

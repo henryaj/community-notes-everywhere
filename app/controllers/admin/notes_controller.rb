@@ -5,7 +5,7 @@ module Admin
     PER_PAGE = 50
 
     def index
-      @page_num = [params[:page].to_i, 1].max
+      @page_num = [ params[:page].to_i, 1 ].max
       @notes = Note.includes(:author, :page)
                    .order(created_at: :desc)
                    .offset((@page_num - 1) * PER_PAGE)

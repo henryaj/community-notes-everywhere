@@ -16,7 +16,7 @@ RSpec.describe User, type: :model do
       older = create(:note, author: user, created_at: 2.days.ago)
       newer = create(:note, author: user, created_at: 1.day.ago)
 
-      expect(user.public_notes).to eq([newer, older])
+      expect(user.public_notes).to eq([ newer, older ])
     end
   end
 

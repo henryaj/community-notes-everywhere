@@ -27,8 +27,8 @@ class Note < ApplicationRecord
       meets_helpful_ratio: not_helpful_count.zero? || positive_count > not_helpful_count * 2,
       meets_not_helpful_threshold: not_helpful_count >= 3,
       meets_not_helpful_ratio: positive_count.zero? || not_helpful_count > positive_count * 2,
-      positive_progress: [positive_count, 3].min,
-      negative_progress: [not_helpful_count, 3].min
+      positive_progress: [ positive_count, 3 ].min,
+      negative_progress: [ not_helpful_count, 3 ].min
     }
   end
 

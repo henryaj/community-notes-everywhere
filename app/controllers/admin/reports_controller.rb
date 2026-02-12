@@ -3,7 +3,7 @@ module Admin
     layout "pages"
 
     def index
-      @reports = Report.includes(note: [:author, :page], user: []).order(created_at: :desc)
+      @reports = Report.includes(note: [ :author, :page ], user: []).order(created_at: :desc)
     end
 
     def update

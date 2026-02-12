@@ -14,9 +14,9 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "auth#failure"
 
   namespace :api do
-    resources :notes, only: [:index, :create, :update, :destroy] do
-      resource :ratings, only: [:create]
-      resources :reports, only: [:create]
+    resources :notes, only: [ :index, :create, :update, :destroy ] do
+      resource :ratings, only: [ :create ]
+      resources :reports, only: [ :create ]
       member do
         get :versions
         get :status_history
@@ -24,16 +24,16 @@ Rails.application.routes.draw do
     end
     get :me, to: "me#show"
     namespace :me do
-      resources :notes, only: [:index]
-      resources :ratings, only: [:index]
+      resources :notes, only: [ :index ]
+      resources :ratings, only: [ :index ]
     end
   end
 
   namespace :admin do
     root "dashboard#index"
-    resources :reports, only: [:index, :update]
-    resources :notes, only: [:index, :destroy]
-    resources :users, only: [:index] do
+    resources :reports, only: [ :index, :update ]
+    resources :notes, only: [ :index, :destroy ]
+    resources :users, only: [ :index ] do
       member do
         patch :promote
         patch :demote

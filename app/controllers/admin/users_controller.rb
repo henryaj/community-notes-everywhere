@@ -3,7 +3,7 @@ module Admin
     layout "pages"
 
     before_action :require_superadmin!
-    before_action :set_user, only: [:promote, :demote]
+    before_action :set_user, only: [ :promote, :demote ]
 
     def index
       @users = User.order(:twitter_handle)
