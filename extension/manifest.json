@@ -8,6 +8,7 @@
     "activeTab",
     "tabs"
   ],
+  "homepage_url": "https://notes.blmc.dev",
   "host_permissions": [
     "http://localhost:3000/*",
     "https://notes.blmc.dev/*"

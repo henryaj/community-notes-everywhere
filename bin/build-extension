@@ -34,6 +34,10 @@ CONF
     cat > "$dist/config.js" <<'CONF'
 const API_BASE = "https://notes.blmc.dev";
 CONF
+    # Strip localhost from prod manifest
+    sed -i '' '/"http:\/\/localhost:3000\/\*"/d' "$dist/manifest.json"
+    # Clean up trailing commas left by removing lines (before a closing bracket)
+    sed -i '' -E 'N;s/,([[:space:]]*\])/\1/;P;D' "$dist/manifest.json"
   fi
 
   echo "Built $env extension → dist/$env/"
