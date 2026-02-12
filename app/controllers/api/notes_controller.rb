@@ -1,7 +1,9 @@
 module Api
   class NotesController < ApplicationController
-    before_action :authenticate!, only: [:create]
+    before_action :authenticate!, only: [:create, :update, :destroy]
     before_action :require_writing_reputation!, only: [:create]
+    before_action :set_note, only: [:update, :destroy]
+    before_action :authorize_author!, only: [:update, :destroy]
 
     # GET /api/notes?url=URL
     def index
@@ -9,7 +11,7 @@ module Api
       return render json: { error: "url parameter required" }, status: :bad_request if url.blank?
 
       page = Page.find_by(url: Page.normalize_url_string(url))
-      notes = page ? page.notes.includes(:author, :ratings).order(created_at: :desc) : []
+      notes = page ? page.notes.where("reports_count < 3").includes(:author, :ratings, :reports).order(created_at: :desc) : []
 
       render json: {
         notes: notes.map { |note| serialize_note(note) },
@@ -38,7 +40,32 @@ module Api
       end
     end
 
+    # PATCH /api/notes/:id
+    def update
+      if @note.update(update_note_params)
+        render json: serialize_note(@note.reload)
+      else
+        render json: { errors: @note.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
+    # DELETE /api/notes/:id
+    def destroy
+      @note.destroy!
+      head :no_content
+    end
+
     private
+
+    def set_note
+      @note = Note.find(params[:id])
+    end
+
+    def authorize_author!
+      unless @note.author_id == current_user.id
+        render json: { error: "You can only modify your own notes" }, status: :forbidden
+      end
+    end
 
     def require_writing_reputation!
       unless current_user.can_write?
@@ -50,8 +77,13 @@ module Api
       params.require(:note).permit(:url, :body, :selected_text, :text_prefix, :text_suffix, :css_selector, :sources_linked)
     end
 
+    def update_note_params
+      params.require(:note).permit(:body, :sources_linked)
+    end
+
     def serialize_note(note)
       user_rating = current_user && note.ratings.detect { |r| r.user_id == current_user.id }
+      user_reported = current_user && note.reports.any? { |r| r.user_id == current_user.id }
 
       {
         id: note.id,
@@ -72,7 +104,8 @@ module Api
           avatar_url: note.author.avatar_url,
           karma: note.author.karma
         },
-        current_user_rating: user_rating&.helpfulness
+        current_user_rating: user_rating&.helpfulness,
+        current_user_reported: user_reported || false
       }
     end
   end

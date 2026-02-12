@@ -2,11 +2,16 @@ class Note < ApplicationRecord
   belongs_to :author, class_name: "User"
   belongs_to :page
   has_many :ratings, dependent: :destroy
+  has_many :reports, dependent: :destroy
 
   enum :status, { pending: 0, helpful: 1, not_helpful: 2 }
 
   validates :body, presence: true
   validates :selected_text, presence: true
+
+  def hidden?
+    reports_count >= 3
+  end
 
   def update_status!
     positive_count = helpful_count + somewhat_count

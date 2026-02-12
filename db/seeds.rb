@@ -91,4 +91,4 @@ seed_notes.each do |attrs|
 end
 
 puts "\nSeed complete. Dev login: /auth/dev (rep ~39, anyone can rate)"
-puts "Low-rep login: /auth/dev?user=testuser (rep 10, can rate but not write)"
+puts "Low-rep login: /auth/dev?user=testuser (rep 10, cannot rate or write)"

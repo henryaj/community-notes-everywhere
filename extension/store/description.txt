@@ -1,0 +1,43 @@
+Community Notes Everywhere brings the power of collaborative fact-checking to the entire web. Inspired by X's Community Notes, this extension lets anyone add context, corrections, and sourced information to any webpage — not just social media.
+
+HOW IT WORKS
+
+When you install Community Notes Everywhere, every webpage you visit becomes annotatable. See something misleading? Select the text, write a note with context and sources, and submit it for the community to review. Other users see your note as an inline highlight anchored to the exact text you referenced.
+
+Notes are rated by the community using a three-way system: Helpful, Somewhat, or Not helpful. When enough people agree a note is helpful, it's promoted with a green highlight so future visitors see it immediately. Notes that the community finds unhelpful fade into the background.
+
+BUILT ON TRUST
+
+Not everyone can write notes right away — and that's by design. Community Notes Everywhere uses a reputation system tied to your X (Twitter) account. Your reputation score is calculated from your account age, follower count, and the quality of notes you've written. Once you reach the threshold, you can start contributing notes and rating others.
+
+This approach keeps the quality of notes high while still being open to anyone who has demonstrated good faith online.
+
+TEXT ANCHORING THAT WORKS
+
+Notes don't just attach to a page — they attach to specific text. Our multi-strategy anchoring system re-finds the annotated text on every page load, even if the page has been updated or reformatted since the note was written. This means notes stay relevant and correctly positioned over time.
+
+PRIVACY COMMITMENT
+
+We believe in collecting only what's necessary. Community Notes Everywhere stores your X profile information (handle, display name, avatar) for identity, plus the notes and ratings you create. We don't track your browsing history, we don't sell your data, and we don't inject ads. The extension only communicates with our API when you visit a page that has notes or when you create content.
+
+COMMUNITY-DRIVEN AND OPEN SOURCE
+
+Community Notes Everywhere is an open-source project. The entire codebase — both the Chrome extension and the backend API — is publicly available on GitHub. We believe that a tool for improving information quality online should itself be transparent and open to scrutiny.
+
+The project is built with a Rails API backend and a Manifest V3 Chrome extension. Contributions are welcome — whether that's writing code, reporting bugs, or simply using the extension and rating notes.
+
+KEY FEATURES
+
+• Add context notes anchored to specific text on any webpage
+• Three-way community ratings: Helpful, Somewhat, or Not helpful
+• Reputation system ensures quality contributions
+• Color-coded highlights: green (helpful), amber (pending), grey (not helpful)
+• Edit or delete your own notes at any time
+• Report inappropriate notes (spam, harassment, misleading)
+• Toggle visibility of non-helpful notes
+• Works on any website that loads in Chrome
+• Open source and privacy-first
+
+JOIN THE COMMUNITY
+
+The web is full of information — but not all of it is accurate. Community Notes Everywhere is a step toward a more informed internet, where readers help each other navigate claims, add missing context, and surface trustworthy sources. Install the extension and start contributing today.

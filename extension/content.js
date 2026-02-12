@@ -164,6 +164,10 @@
   // ── Page interaction ──
 
   async function loadNotes() {
+    // Restore toggle preference from storage
+    const stored = await chrome.storage.local.get("cne_show_all_notes");
+    if (stored.cne_show_all_notes === true) showAllNotes = true;
+
     const response = await chrome.runtime.sendMessage({
       type: "GET_NOTES",
       url: window.location.href,
@@ -211,6 +215,7 @@
       document.body.appendChild(btn);
       btn.addEventListener("click", () => {
         showAllNotes = !showAllNotes;
+        chrome.storage.local.set({ cne_show_all_notes: showAllNotes });
         highlightNotes();
       });
     }
@@ -278,8 +283,13 @@
     }
   }
 
-  function showNotePopover(anchor, note) {
+  async function showNotePopover(anchor, note) {
     document.querySelectorAll(".cne-popover").forEach((el) => el.remove());
+
+    // Get current user to check ownership
+    const storage = await chrome.storage.local.get("user");
+    const currentUser = storage.user;
+    const isOwner = currentUser && note.author && note.author.id === currentUser.id;
 
     const popover = document.createElement("div");
     popover.className = "cne-popover";
@@ -292,6 +302,8 @@
             ${note.author.karma != null ? `<span class="cne-karma">&middot; ${note.author.karma} karma</span>` : ''}
           </span>
         </div>
+        ${!isOwner && !note.current_user_reported ? `<button class="cne-report-btn" title="Report this note">&#x2691;</button>` : ''}
+        ${!isOwner && note.current_user_reported ? `<span class="cne-reported-label">Reported</span>` : ''}
         <button class="cne-close">&times;</button>
       </div>
       <div class="cne-popover-body">
@@ -300,6 +312,10 @@
       <div class="cne-popover-status">
         ${formatStatusBadge(note)}
       </div>
+      ${isOwner ? `<div class="cne-owner-actions">
+        <button class="cne-edit-btn">Edit</button>
+        <button class="cne-delete-btn">Delete</button>
+      </div>` : ''}
       ${canRate ? `<div class="cne-popover-footer">
         <span class="cne-rating-label">Is this note helpful? <span class="cne-info-icon">&#x24D8;<span class="cne-info-tooltip"><strong>Consider whether this note:</strong><ul><li>Cites high-quality sources</li><li>Is accurate and up to date</li><li>Provides important context</li><li>Is easy to understand</li><li>Would be useful to people across different viewpoints</li><li>Is neutral and non-inflammatory</li></ul></span></span></span>
         <div class="cne-rating-pills">
@@ -331,6 +347,150 @@
       .querySelector(".cne-close")
       .addEventListener("click", () => popover.remove());
 
+    // ── Edit button handler ──
+    const editBtn = popover.querySelector(".cne-edit-btn");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        const body = popover.querySelector(".cne-popover-body");
+        body.innerHTML = `
+          <textarea class="cne-edit-textarea">${escapeHtml(note.body)}</textarea>
+          <div class="cne-edit-actions">
+            <button class="cne-edit-cancel">Cancel</button>
+            <button class="cne-edit-save">Save</button>
+          </div>
+        `;
+        const textarea = body.querySelector(".cne-edit-textarea");
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+        body.querySelector(".cne-edit-cancel").addEventListener("click", () => {
+          body.innerHTML = `<p>${linkify(escapeHtml(note.body))}</p>`;
+        });
+
+        body.querySelector(".cne-edit-save").addEventListener("click", async () => {
+          const newBody = textarea.value.trim();
+          if (!newBody) return;
+
+          const saveBtn = body.querySelector(".cne-edit-save");
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Saving...";
+
+          const result = await chrome.runtime.sendMessage({
+            type: "UPDATE_NOTE",
+            noteId: note.id,
+            note: { body: newBody },
+          });
+
+          if (result && !result.error) {
+            note.body = result.body || newBody;
+            body.innerHTML = `<p>${linkify(escapeHtml(note.body))}</p>`;
+            // Update the note in the local array
+            const idx = notes.findIndex((n) => n.id === note.id);
+            if (idx !== -1) notes[idx] = { ...notes[idx], body: note.body };
+          } else {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save";
+            alert(result?.error || "Failed to update note.");
+          }
+        });
+      });
+    }
+
+    // ── Delete button handler ──
+    const deleteBtn = popover.querySelector(".cne-delete-btn");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
+        const ownerActions = popover.querySelector(".cne-owner-actions");
+        ownerActions.innerHTML = `
+          <span class="cne-delete-confirm-text">Delete this note?</span>
+          <button class="cne-delete-yes">Yes</button>
+          <button class="cne-delete-cancel">Cancel</button>
+        `;
+
+        ownerActions.querySelector(".cne-delete-cancel").addEventListener("click", () => {
+          ownerActions.innerHTML = `
+            <button class="cne-edit-btn">Edit</button>
+            <button class="cne-delete-btn">Delete</button>
+          `;
+          // Re-attach listeners for the restored buttons
+          ownerActions.querySelector(".cne-edit-btn").addEventListener("click", () => {
+            editBtn.click();
+          });
+          ownerActions.querySelector(".cne-delete-btn").addEventListener("click", () => {
+            deleteBtn.click();
+          });
+        });
+
+        ownerActions.querySelector(".cne-delete-yes").addEventListener("click", async () => {
+          const yesBtn = ownerActions.querySelector(".cne-delete-yes");
+          yesBtn.disabled = true;
+          yesBtn.textContent = "Deleting...";
+
+          const result = await chrome.runtime.sendMessage({
+            type: "DELETE_NOTE",
+            noteId: note.id,
+          });
+
+          if (result && !result.error) {
+            // Remove from local array
+            const idx = notes.findIndex((n) => n.id === note.id);
+            if (idx !== -1) notes.splice(idx, 1);
+            // Remove highlight span
+            const highlight = document.querySelector(`.cne-highlight[data-note-id="${note.id}"]`);
+            if (highlight) highlight.replaceWith(...highlight.childNodes);
+            popover.remove();
+          } else {
+            yesBtn.disabled = false;
+            yesBtn.textContent = "Yes";
+            alert(result?.error || "Failed to delete note.");
+          }
+        });
+      });
+    }
+
+    // ── Report button handler ──
+    const reportBtn = popover.querySelector(".cne-report-btn");
+    if (reportBtn) {
+      reportBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Remove existing dropdown if open
+        const existing = popover.querySelector(".cne-report-dropdown");
+        if (existing) { existing.remove(); return; }
+
+        const dropdown = document.createElement("div");
+        dropdown.className = "cne-report-dropdown";
+        dropdown.innerHTML = `
+          <div class="cne-report-option" data-reason="spam">Spam</div>
+          <div class="cne-report-option" data-reason="harassment">Harassment</div>
+          <div class="cne-report-option" data-reason="misleading">Misleading</div>
+          <div class="cne-report-option" data-reason="other">Other</div>
+        `;
+        reportBtn.parentElement.style.position = "relative";
+        reportBtn.after(dropdown);
+
+        dropdown.querySelectorAll(".cne-report-option").forEach((opt) => {
+          opt.addEventListener("click", async () => {
+            const reason = opt.dataset.reason;
+            dropdown.remove();
+
+            const result = await chrome.runtime.sendMessage({
+              type: "REPORT_NOTE",
+              noteId: note.id,
+              reason,
+            });
+
+            if (result && !result.error) {
+              reportBtn.replaceWith(Object.assign(document.createElement("span"), {
+                className: "cne-reported-label",
+                textContent: "Reported",
+              }));
+            }
+          });
+        });
+      });
+    }
+
+    // ── Rating pill handlers ──
     popover.querySelectorAll(".cne-pill-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const helpfulness = btn.dataset.helpfulness;
@@ -341,7 +501,6 @@
         });
 
         if (result && !result.error) {
-          // Update pill button text with new counts
           popover.querySelectorAll(".cne-pill-btn").forEach((b) => {
             b.classList.remove("cne-pill-selected");
           });
@@ -352,7 +511,6 @@
           pills[1].textContent = 'Somewhat';
           pills[2].textContent = 'No';
 
-          // Update status badge
           const statusEl = popover.querySelector(".cne-popover-status");
           if (statusEl) {
             note.status = result.note.status;
@@ -373,7 +531,6 @@
       }
     }
 
-    // Use capture phase + setTimeout so the opening click doesn't immediately dismiss
     setTimeout(() => {
       document.addEventListener("click", onClickOutside, true);
     }, 0);
@@ -591,6 +748,35 @@
     );
   }
 
+  async function maybeShowOnboarding() {
+    const { cne_onboarded } = await chrome.storage.local.get("cne_onboarded");
+    if (cne_onboarded) return;
+
+    const firstHighlight = document.querySelector(".cne-highlight");
+    if (!firstHighlight) return;
+
+    const card = document.createElement("div");
+    card.className = "cne-onboarding";
+
+    card.innerHTML = `
+      <div class="cne-onboarding-title">Welcome to Community Notes Everywhere!</div>
+      <div class="cne-onboarding-text">
+        Highlighted text has community-written context notes. Click any highlight to read the note and rate whether it's helpful.
+      </div>
+      <button class="cne-onboarding-dismiss">Got it</button>
+    `;
+
+    const rect = firstHighlight.getBoundingClientRect();
+    card.style.top = `${window.scrollY + rect.bottom + GAP}px`;
+    card.style.left = `${window.scrollX + rect.left}px`;
+    document.body.appendChild(card);
+
+    card.querySelector(".cne-onboarding-dismiss").addEventListener("click", () => {
+      chrome.storage.local.set({ cne_onboarded: true });
+      card.remove();
+    });
+  }
+
   // Initialize
-  loadNotes();
+  loadNotes().then(() => maybeShowOnboarding());
 })();

@@ -51,14 +51,14 @@ RSpec.describe "Api::Notes", type: :request do
       expect(json["can_rate"]).to eq(true)
     end
 
-    it "returns can_rate true when authenticated with low reputation" do
+    it "returns can_rate false when authenticated with low reputation" do
       low_rep_user = create(:user, reputation_score: 10.0)
       headers = { "Authorization" => "Bearer #{low_rep_user.auth_token}" }
 
       get "/api/notes", params: { url: "https://example.com/test" }, headers: headers
 
       json = JSON.parse(response.body)
-      expect(json["can_rate"]).to eq(true)
+      expect(json["can_rate"]).to eq(false)
     end
 
     it "returns can_write false when not authenticated" do
@@ -151,6 +151,92 @@ RSpec.describe "Api::Notes", type: :request do
       }, headers: headers
 
       expect(response).to have_http_status(:created)
+    end
+  end
+
+  describe "PATCH /api/notes/:id" do
+    let(:note) { create(:note, author: user) }
+
+    it "updates the note body" do
+      patch "/api/notes/#{note.id}", params: {
+        note: { body: "Updated context" }
+      }, headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json["body"]).to eq("Updated context")
+      expect(note.reload.body).to eq("Updated context")
+    end
+
+    it "updates sources_linked" do
+      patch "/api/notes/#{note.id}", params: {
+        note: { sources_linked: true }
+      }, headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json["id"]).to eq(note.id)
+      expect(note.reload.sources_linked).to eq(true)
+    end
+
+    it "returns 401 without auth token" do
+      patch "/api/notes/#{note.id}", params: {
+        note: { body: "Updated" }
+      }
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "returns 403 when user is not the author" do
+      other_user = create(:user, reputation_score: 30.0)
+      other_headers = { "Authorization" => "Bearer #{other_user.auth_token}" }
+
+      patch "/api/notes/#{note.id}", params: {
+        note: { body: "Hacked" }
+      }, headers: other_headers
+
+      expect(response).to have_http_status(:forbidden)
+      expect(note.reload.body).not_to eq("Hacked")
+    end
+
+    it "does not allow updating selected_text" do
+      original_text = note.selected_text
+
+      patch "/api/notes/#{note.id}", params: {
+        note: { body: "Updated", selected_text: "changed text" }
+      }, headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(note.reload.selected_text).to eq(original_text)
+    end
+  end
+
+  describe "DELETE /api/notes/:id" do
+    let!(:note) { create(:note, author: user) }
+
+    it "deletes the note" do
+      expect {
+        delete "/api/notes/#{note.id}", headers: auth_headers
+      }.to change(Note, :count).by(-1)
+
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "returns 401 without auth token" do
+      delete "/api/notes/#{note.id}"
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "returns 403 when user is not the author" do
+      other_user = create(:user, reputation_score: 30.0)
+      other_headers = { "Authorization" => "Bearer #{other_user.auth_token}" }
+
+      expect {
+        delete "/api/notes/#{note.id}", headers: other_headers
+      }.not_to change(Note, :count)
+
+      expect(response).to have_http_status(:forbidden)
     end
   end
 end

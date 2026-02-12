@@ -35,6 +35,9 @@ gem "image_processing", "~> 1.2"
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 gem "rack-cors"
 
+# Rate limiting
+gem "rack-attack"
+
 # OAuth with X (Twitter)
 gem "omniauth-twitter2"
 gem "omniauth-rails_csrf_protection"

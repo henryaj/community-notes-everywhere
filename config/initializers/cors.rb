@@ -1,9 +1,12 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins(
-      "chrome-extension://#{ENV.fetch('CHROME_EXTENSION_ID', '*')}",
-      *ENV.fetch("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-    )
+    allowed = []
+    allowed << "chrome-extension://#{ENV['CHROME_EXTENSION_ID']}" if ENV["CHROME_EXTENSION_ID"].present?
+    allowed += ENV["CORS_ORIGINS"].split(",").map(&:strip) if ENV["CORS_ORIGINS"].present?
+    allowed += ENV["ALLOWED_ORIGINS"].split(",").map(&:strip) if ENV["ALLOWED_ORIGINS"].present?
+    allowed << "http://localhost:3000" if allowed.empty?
+
+    origins(*allowed)
 
     resource "*",
       headers: :any,

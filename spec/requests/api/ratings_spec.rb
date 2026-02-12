@@ -51,13 +51,13 @@ RSpec.describe "Api::Ratings", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
 
-    it "allows a zero-reputation user to rate" do
-      zero_rep_user = create(:user, reputation_score: 0.0)
-      headers = { "Authorization" => "Bearer #{zero_rep_user.auth_token}" }
+    it "returns 403 for a low-reputation user" do
+      low_rep_user = create(:user, reputation_score: 5.0)
+      headers = { "Authorization" => "Bearer #{low_rep_user.auth_token}" }
 
       post "/api/notes/#{note.id}/ratings", params: { helpfulness: "yes" }, headers: headers
 
-      expect(response).to have_http_status(:created)
+      expect(response).to have_http_status(:forbidden)
     end
   end
 end

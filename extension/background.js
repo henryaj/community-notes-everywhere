@@ -1,4 +1,10 @@
-const API_BASE = "http://localhost:3000";
+const API_BASE = (() => {
+  // If loaded unpacked (dev mode), use localhost
+  if (!chrome.runtime.getManifest().update_url) {
+    return "http://localhost:3000";
+  }
+  return "https://community-notes-everywhere-abc123.herokuapp.com";
+})();
 
 // Watch for auth callback tabs — grab the token from the URL hash
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -52,6 +58,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "UPDATE_NOTE") {
+    updateNote(message.noteId, message.note).then(sendResponse);
+    return true;
+  }
+
+  if (message.type === "DELETE_NOTE") {
+    deleteNote(message.noteId).then(sendResponse);
+    return true;
+  }
+
+  if (message.type === "REPORT_NOTE") {
+    reportNote(message.noteId, message.reason).then(sendResponse);
+    return true;
+  }
+
   if (message.type === "GET_ME") {
     fetchMe().then(sendResponse);
     return true;
@@ -91,6 +112,7 @@ async function apiFetch(path, options = {}) {
     };
   }
 
+  if (response.status === 204) return { ok: true };
   return response.json();
 }
 
@@ -111,6 +133,26 @@ async function rateNote(noteId, helpfulness) {
   return apiFetch(`/api/notes/${noteId}/ratings`, {
     method: "POST",
     body: JSON.stringify({ helpfulness }),
+  });
+}
+
+async function updateNote(noteId, note) {
+  return apiFetch(`/api/notes/${noteId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ note }),
+  });
+}
+
+async function deleteNote(noteId) {
+  return apiFetch(`/api/notes/${noteId}`, {
+    method: "DELETE",
+  });
+}
+
+async function reportNote(noteId, reason) {
+  return apiFetch(`/api/notes/${noteId}/reports`, {
+    method: "POST",
+    body: JSON.stringify({ report: { reason } }),
   });
 }
 

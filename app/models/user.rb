@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  MIN_RATING_REPUTATION = 15
   MIN_WRITING_REPUTATION = 25
 
   has_many :notes, foreign_key: :author_id, dependent: :destroy
@@ -21,7 +22,7 @@ class User < ApplicationRecord
   end
 
   def can_rate?
-    true
+    reputation_score >= MIN_RATING_REPUTATION
   end
 
   def can_write?

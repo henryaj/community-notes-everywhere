@@ -48,6 +48,7 @@ class AuthController < ApplicationController
         <script>
           const token = "#{user.auth_token}";
           const userData = {
+            id: #{user.id},
             handle: "#{user.twitter_handle}",
             displayName: "#{user.display_name}",
             avatarUrl: "#{user.avatar_url}"

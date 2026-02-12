@@ -1,6 +1,7 @@
 module Api
   class RatingsController < ApplicationController
     before_action :authenticate!
+    before_action :require_rating_reputation!
 
     # POST /api/notes/:note_id/ratings
     def create
@@ -22,6 +23,14 @@ module Api
         }, status: rating.previously_new_record? ? :created : :ok
       else
         render json: { errors: rating.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
+    private
+
+    def require_rating_reputation!
+      unless current_user.can_rate?
+        render json: { error: "You need a reputation score of at least #{User::MIN_RATING_REPUTATION} to rate notes" }, status: :forbidden
       end
     end
   end

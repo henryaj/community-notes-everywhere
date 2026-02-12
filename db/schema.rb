@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_141535) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_134823) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_141535) do
     t.integer "helpful_count", default: 0, null: false
     t.integer "not_helpful_count", default: 0, null: false
     t.bigint "page_id", null: false
+    t.integer "reports_count", default: 0, null: false
     t.text "selected_text", null: false
     t.integer "somewhat_count", default: 0, null: false
     t.boolean "sources_linked"
@@ -54,6 +55,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_141535) do
     t.index ["user_id"], name: "index_ratings_on_user_id"
   end
 
+  create_table "reports", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "note_id", null: false
+    t.integer "reason", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "note_id"], name: "index_reports_on_user_id_and_note_id", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "account_created_at"
     t.string "auth_token"
@@ -74,4 +84,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_141535) do
   add_foreign_key "notes", "users", column: "author_id"
   add_foreign_key "ratings", "notes"
   add_foreign_key "ratings", "users"
+  add_foreign_key "reports", "notes"
+  add_foreign_key "reports", "users"
 end
