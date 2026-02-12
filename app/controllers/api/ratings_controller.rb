@@ -6,6 +6,11 @@ module Api
     # POST /api/notes/:note_id/ratings
     def create
       note = Note.find(params[:note_id])
+
+      if note.author_id == current_user.id
+        return render json: { error: "You cannot rate your own notes" }, status: :forbidden
+      end
+
       rating = current_user.ratings.find_or_initialize_by(note: note)
       rating.helpfulness = params[:helpfulness]
 
