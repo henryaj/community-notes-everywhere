@@ -1,4 +1,4 @@
-<%= turbo_frame_tag "notes_page_#{page}" do %>
+<turbo-frame id="notes_page_<%= page %>">
   <div class="space-y-4">
     <% notes.each do |note| %>
       <div class="border border-gray-200 rounded-lg p-4">
@@ -14,8 +14,8 @@
     <% end %>
   </div>
   <% if notes.size == 20 %>
-    <%= turbo_frame_tag "notes_page_#{page + 1}", src: profile_notes_path(user.twitter_handle, page: page + 1), loading: :lazy do %>
+    <turbo-frame id="notes_page_<%= page + 1 %>" src="<%= profile_notes_path(user.twitter_handle, page: page + 1) %>" loading="lazy">
       <p class="text-center text-gray-400 py-4">Loading more notes...</p>
-    <% end %>
+    </turbo-frame>
   <% end %>
-<% end %>
+</turbo-frame>
