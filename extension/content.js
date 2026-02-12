@@ -756,9 +756,10 @@
   }
 
   function showNoteForm(rect, selectedText, context) {
-    document.querySelectorAll(".cne-note-form").forEach((el) => el.remove());
+    // Allow multiple forms to stay open — don't remove existing ones
 
     let aiDraft = null;
+    const formId = `cne-form-${Date.now()}`;
 
     const form = document.createElement("div");
     form.className = "cne-note-form";
@@ -773,11 +774,11 @@
       <div class="cne-source-check">
         <p class="cne-source-question">Did you link to sources you believe most people would consider trustworthy?</p>
         <label class="cne-radio-label">
-          <input type="radio" name="cne-sources-linked" value="true" class="cne-radio" />
+          <input type="radio" name="${formId}-sources" value="true" class="cne-radio" />
           Yes
         </label>
         <label class="cne-radio-label">
-          <input type="radio" name="cne-sources-linked" value="false" class="cne-radio" />
+          <input type="radio" name="${formId}-sources" value="false" class="cne-radio" />
           No
         </label>
       </div>
@@ -929,7 +930,7 @@
         const body = textarea.value.trim();
         if (!body) return;
 
-        const sourcesRadio = form.querySelector('input[name="cne-sources-linked"]:checked');
+        const sourcesRadio = form.querySelector(`input[name="${formId}-sources"]:checked`);
         if (!sourcesRadio || sourcesRadio.value !== "true") {
           const sourceCheck = form.querySelector(".cne-source-check");
           sourceCheck.classList.add("cne-source-check-error");
